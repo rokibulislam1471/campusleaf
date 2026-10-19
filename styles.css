@@ -182,7 +182,6 @@ body.dark .btn.secondary {
     color: #BCEDC4;
   }
 }
-<<<<<<< HEAD
 
 
 /* Timetable day selector: date is primary, scheduled-class count is secondary. */
@@ -251,5 +250,3 @@ body.dark .day-tab:not(.active) .day-count { color: #BFD3C4; }
 .feedback-email:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 body.dark .feedback-contact-label { color: #E9F4E9; }
 body.dark .feedback-email { color: #AEE7BC; }
-=======
->>>>>>> dbea7600dab1f35d0cf0b34fe2008b00ed5bdbbf
