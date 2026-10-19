@@ -26,7 +26,7 @@ test('dashboard, timetable, dining render without runtime exception',async()=>{
  await new Promise(r=>setTimeout(r,60));assert.match(app.html,/Vegetable pasta/);
  assert.match(app.html,/Published menu/);
  click(app,'diet-veg');assert.match(app.html,/Vegetable pasta/);
- click(app,'nav',{screen:'campus'});assert.match(app.html,/Explore both campuses/);
+ click(app,'nav',{screen:'campus'});assert.match(app.html,/Find a campus building/);
  click(app,'nav',{screen:'more'});assert.match(app.html,/Calendar connection/);
  assert.match(app.html,/Install on your phone/);
 });

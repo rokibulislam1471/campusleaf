@@ -17,6 +17,44 @@
       food: 'https://www.hswt.de/studium/im-studium/campusleben/campus-triesdorf'
     }
   };
+  // Street addresses transcribed from official HSWT campus directories (2026-10-19).
+  // Street-level routing is NOT a verified entrance or room pin.
+  const BUILDINGS = Object.freeze({
+    weihenstephan: [
+      {code:"A1", address:"Am Hofgarten 1, 85354 Freising, Germany"},
+      {code:"A2", address:"Am Hofgarten 3, 85354 Freising, Germany"},
+      {code:"A3", address:"Am Hofgarten 10, 85354 Freising, Germany"},
+      {code:"A4", address:"Am Hofgarten 4, 85354 Freising, Germany"},
+      {code:"A5", address:"Am Hofgarten 6, 85354 Freising, Germany"},
+      {code:"A6", address:"Am Hofgarten 4, 85354 Freising, Germany"},
+      {code:"A8", address:"Am Hofgarten 2, 85354 Freising, Germany"},
+      {code:"A9", address:"Weihenstephaner Berg 16, 85354 Freising, Germany"},
+      {code:"A10", address:"Weihenstephaner Berg 17, 85354 Freising, Germany"},
+      {code:"C4", address:"Weihenstephaner Berg 5, 85354 Freising, Germany"},
+      {code:"C5", address:"Vöttinger Straße 27, 85354 Freising, Germany"},
+      {code:"D1", address:"Am Staudengarten 1, 85354 Freising, Germany"},
+      {code:"F9", address:"Hans-Carl-von-Carlowitz-Platz 3, 85354 Freising, Germany"},
+      {code:"H1", address:"Am Staudengarten 13, 85354 Freising, Germany"},
+      {code:"H3", address:"Am Staudengarten 12a, 85354 Freising, Germany"},
+      {code:"H6", address:"Am Staudengarten 11, 85354 Freising, Germany"},
+      {code:"H7", address:"Am Staudengarten 7, 85354 Freising, Germany"},
+      {code:"H8", address:"Am Staudengarten 14, 85354 Freising, Germany"},
+      {code:"H9", address:"Am Staudengarten 12, 85354 Freising, Germany"},
+      {code:"H10", address:"Am Staudengarten 10, 85354 Freising, Germany"},
+      {code:"H11", address:"Am Staudengarten 8, 85354 Freising, Germany"},
+      {code:"H14", address:"Lange Point 2, 85354 Freising, Germany"},
+      {code:"H21", address:"Am Staudengarten 9, 85354 Freising, Germany"},
+    ],
+    triesdorf: [
+      {code:"A", address:"Steingruberstraße 2, 91746 Weidenbach, Germany"},
+      {code:"B", address:"Markgrafenstraße 12, 91746 Weidenbach, Germany"},
+      {code:"C", address:"Steingruberstraße 1a, 91746 Weidenbach, Germany"},
+      {code:"D", address:"Steingruberstraße 1, 91746 Weidenbach, Germany"},
+      {code:"E", address:"Steingruberstraße 1a, 91746 Weidenbach, Germany"},
+      {code:"F", address:"Markgrafenstraße 16, 91746 Weidenbach, Germany"},
+      {code:"H", address:"Markgrafenstraße 14, 91746 Weidenbach, Germany"},
+    ],
+  });
   const MAIL_URL = 'https://xmail.mwn.de/owa/';
   const MAIL_HELP_URL = 'https://www.hswt.de/en/studium/before-the-study/freshman-info';
   const LINKS = [
@@ -154,7 +192,65 @@
     <div class="mail-bottom"><div><h3>${t('Need help accessing university email?','Brauchst du Hilfe bei der Hochschul-E-Mail?')}</h3><p>${t('For account access or password recovery, use official HSWT guidance and support. CampusLeaf cannot reset a university password.','Bei Fragen zum Zugang oder zur Passwortwiederherstellung nutze die offizielle HSWT-Hilfe. CampusLeaf kann dein Hochschul-Passwort nicht zurücksetzen.')}</p></div>${a(MAIL_HELP_URL,ic('external',16)+' '+t('HSWT setup guide','HSWT-Anleitung'),'btn outline')}</div>
     <div class="info-banner mail-boundary">${ic('info',18)}<div>${t('The mailbox is not embedded in CampusLeaf. On iPhone, the link can open Safari and its login state is separate from the installed web app. CampusLeaf cannot bypass the university’s sign-in or session timeout requirements.','Das Postfach ist nicht in CampusLeaf eingebettet. Auf dem iPhone kann Safari geöffnet werden; dessen Anmeldesitzung ist von der installierten Web-App getrennt. CampusLeaf kann die Anmelde- oder Sitzungsregeln der Hochschule nicht umgehen.')}</div></div>
   </div>`}
-  function campusPage(){return `<div class="toolbar"><div><h1 class="page-title">${t('Explore both campuses','Unsere beiden Standorte')}</h1><p class="page-sub">${t('Find your way around HSWT — from Freising to Weidenbach.','Orientiere dich an der HSWT – von Freising bis Weidenbach.')}</p></div>${a('https://www.hswt.de/anfahrt/',ic('external',16)+' '+t('Official campus maps','Offizielle Lagepläne'),'btn outline')}</div><div class="campus-grid">${Object.entries(CAMPUSES).map(([key,c])=>`<article class="campus-box ${data.campus===key?'selected':''}"><div class="map-graphic"><div class="map-pin">${ic('pin',22)}</div></div><span class="campus-tag">${t('HSWT CAMPUS','HSWT CAMPUS')} ${data.campus===key?' · '+t('SELECTED','AUSGEWÄHLT'):''}</span><h3>${esc(c.name)}</h3><p>${ic('pin',14)} ${esc(c.address)}</p><div class="building-list">${c.buildings.map(b=>`<span class="building">${esc(b)}</span>`).join('')}</div><div style="display:flex;flex-wrap:wrap;gap:9px">${a(mapUrl(c),ic('map',15)+' '+t('Directions','Route'),'btn small')}${a(c.info,ic('external',14)+' '+t('Campus info','Campusinfo'),'btn secondary small')}${data.campus===key?'':action('select-campus',t('Set my campus','Campus wählen'),'btn outline small',`data-campus="${key}"`)}</div></article>`).join('')}</div><div class="info-banner" style="margin-top:21px">${ic('info',18)}<div>${t('Use the official HSWT campus maps for verified building positions. The illustrated maps above are decorative, not navigation maps.','Nutze die offiziellen HSWT-Lagepläne für die genauen Gebäude-Standorte. Die Grafiken oben sind nur Illustrationen.')}</div></div>`}
+  // An on-device location reading is kept in memory only, never in localStorage.
+  const navigationState = { selected:'', query:'', location:null, status:'idle', error:'' };
+  const officialBuildingsURL = 'https://www.hswt.de/anfahrt/';
+  const directionsURL = (building) => {
+    const params = new URLSearchParams({api:'1',destination:building.address,travelmode:'walking',dir_action:'navigate'});
+    if(navigationState.location){
+      params.set('origin',`${navigationState.location.lat.toFixed(6)},${navigationState.location.lng.toFixed(6)}`);
+    }
+    return `https://www.google.com/maps/dir/?${params.toString()}`;
+  };
+  const buildingMapURL = b => 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(b.address);
+  function openNavigation(b){
+    // The student chooses to share coordinates with the map provider on this click.
+    window.open(directionsURL(b),'_blank','noopener,noreferrer');
+  }
+  function refreshPosition(){
+    if(navigationState.status==='loading')return;
+    navigationState.status='loading';navigationState.error='';render();
+    const success=(coords)=>{
+      const latitude=Number(coords.latitude),longitude=Number(coords.longitude);
+      if(!Number.isFinite(latitude)||!Number.isFinite(longitude)||Math.abs(latitude)>90||Math.abs(longitude)>180)throw Error('Invalid location');
+      navigationState.location={lat:latitude,lng:longitude,accuracy:Number(coords.accuracy)||0,at:Date.now()};
+      navigationState.status='ready';
+      if(screen==='campus')render();
+    };
+    const failure=error=>{
+      navigationState.status='error';
+      navigationState.error=error?.code===1?t('Location permission denied. Open directions without sharing your coordinates.','Standortzugriff verweigert. Route ohne GPS-Koordinaten öffnen.'):t('Location unavailable. You can still open directions in Maps.','Standort nicht verfügbar. Die Route kann trotzdem in Maps geöffnet werden.');
+      if(screen==='campus')render();
+    };
+    const nativeGPS=window.CampusLeafNativeGeo?.getCurrentPosition;
+    if(typeof nativeGPS==='function'){
+      Promise.resolve().then(()=>nativeGPS()).then(pos=>success(pos.coords)).catch(failure);
+    }else if(navigator.geolocation?.getCurrentPosition){
+      navigator.geolocation.getCurrentPosition(pos=>{try{success(pos.coords)}catch(error){failure(error)}},failure,{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+    }else failure(new Error('Unsupported'));
+  }
+  function buildingResultRows(query){
+    const needle=String(query||'').trim().toLocaleLowerCase('de-DE');
+    const buildings=BUILDINGS[data.campus].filter(b=>!needle||(`${b.code} ${b.address}`).toLocaleLowerCase('de-DE').includes(needle));
+    return buildings.length?buildings.map(b=>`<button class="building-result ${navigationState.selected===b.code?'is-selected':''}" type="button" data-action="pick-building" data-building="${esc(b.code)}" aria-pressed="${navigationState.selected===b.code}"><span class="building-code">${esc(b.code)}</span><span class="building-result-address"><strong>${t('Building','Gebäude')} ${esc(b.code)}</strong><small>${esc(b.address)}</small></span>${ic('chevron-right',17)}</button>`).join(''):
+      `<div class="building-empty">${ic('search',21)} ${t('No buildings match your search.','Keine passenden Gebäude gefunden.')}</div>`;
+  }
+  function campusPage(){
+    const buildings=BUILDINGS[data.campus];
+    const chosen=buildings.find(b=>b.code===navigationState.selected)||buildings[0];
+    const mapPreviewURL='https://maps.google.com/maps?q='+encodeURIComponent(chosen.address)+'&output=embed';
+    const hasGPS=!!navigationState.location;
+    const note=chosen.code==='A4'||chosen.code==='A6'||(data.campus==='triesdorf'&&(chosen.code==='C'||chosen.code==='E'));
+    return `<section class="building-navigator">
+      <div class="toolbar building-toolbar"><div><h1 class="page-title">${t('Find a campus building','Campusgebäude finden')}</h1><p class="page-sub">${t('Verified HSWT street addresses with walking directions from your location.','Offizielle HSWT-Adressen mit Fußwegen ab deinem Standort.')}</p></div>${a(officialBuildingsURL,ic('external',15)+' '+t('HSWT official maps','Offizielle HSWT-Lagepläne'),'btn outline small')}</div>
+      <div class="campus-location-strip"><span class="location-status-icon">${ic('pin',19)}</span><div class="location-status-copy"><strong>${hasGPS?t('Your location is ready','Dein Standort ist verfügbar'):navigationState.status==='loading'?t('Finding your location…','Standort wird ermittelt…'):t('Navigate from your current location','Route ab deinem aktuellen Standort')}</strong><small>${hasGPS?t('Approximate GPS accuracy:','Ungefähre GPS-Genauigkeit:')+' '+Math.round(navigationState.location.accuracy)+' m · '+t('Stored only while the app is open','Nur während der App-Nutzung gespeichert'):navigationState.status==='error'?esc(navigationState.error):t('Optional. Your location is requested only when you tap below.','Optional. Standortzugriff nur nach deinem Klick.')}</small></div>${action('locate-me',ic('pin',16)+' '+(hasGPS?t('Refresh GPS','GPS aktualisieren'):t('Use my location','Meinen Standort nutzen')),'btn secondary small',navigationState.status==='loading'?'disabled aria-busy="true"':'')}</div>
+      <div class="navigator-campus-choice" role="group" aria-label="Campus">${Object.entries(CAMPUSES).map(([key,c])=>action('building-campus',`${esc(c.name)} <span class="campus-count">${BUILDINGS[key].length}</span>`,'campus-choice '+(data.campus===key?'active':''),`data-campus="${key}" aria-pressed="${data.campus===key}"`)).join('')}</div>
+      <div class="building-layout"><section class="building-list-panel"><label class="building-search-label" for="building-search">${t('Find building or street','Gebäude oder Straße suchen')}</label><input class="building-search" id="building-search" type="search" placeholder="${t('Try A1, C4, Am Hofgarten…','z. B. A1, C4, Am Hofgarten…')}" value="${esc(navigationState.query)}" maxlength="80" autocomplete="off"/><div class="building-list-head">${buildings.length} ${t('HSWT addresses','HSWT-Gebäudeadressen')} <span>${t('Select one','Gebäude auswählen')}</span></div><div class="building-results" id="building-results">${buildingResultRows(navigationState.query)}</div></section>
+      <section class="building-detail" aria-label="${t('Building detail','Gebäudedetails')}"><div class="building-detail-top"><span class="building-detail-tag">${t('Selected building','Ausgewähltes Gebäude')}</span><strong>${t('Building','Gebäude')} ${esc(chosen.code)}</strong><p>${ic('pin',15)} ${esc(chosen.address)}</p></div><div class="building-map-frame"><iframe title="${t('Map near HSWT building','Karte nahe HSWT-Gebäude')} ${esc(chosen.code)}" src="${esc(mapPreviewURL)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe></div><div class="building-actions">${action('building-directions',ic('arrow',15)+' '+t('Walking directions','Fußweg anzeigen'),'btn',`data-building="${esc(chosen.code)}"`)}${a(buildingMapURL(chosen),ic('map',15)+' '+t('View on map','Auf Karte ansehen'),'btn outline')}${a(officialBuildingsURL,ic('external',15)+' '+t('Official plan','Offizieller Lageplan'),'btn secondary')}</div>${note?`<p class="building-precision-warning">${ic('info',15)} ${t('This address is shared by several buildings. Check the official campus plan for the right entrance.','Mehrere Gebäude teilen diese Adresse. Den korrekten Eingang bitte im offiziellen Lageplan prüfen.')}</p>`:''}<p class="building-accuracy-note">${t('Directions use the published street address, not a verified entrance or indoor room pin. Google Maps may open externally.','Die Route verwendet die veröffentlichte Straßenadresse, keinen geprüften Eingang oder Raumstandort. Google Maps kann extern geöffnet werden.')}</p></section></div>
+      <div class="info-banner building-privacy">${ic('shield',17)}<div>${t('CampusLeaf does not upload or save your GPS location. When you open Google Maps, that provider may process your coordinates for directions. The map preview uses Google Maps.','CampusLeaf speichert oder überträgt deinen GPS-Standort nicht. Bei der Navigation kann Google Maps deine Koordinaten verarbeiten. Die Kartenansicht nutzt Google Maps.')}</div></div>
+    </section>`;
+  }
+
   function more(){return `<h1 class="page-title">${t('Your campus toolkit','Deine Campus-Tools')}</h1><p class="page-sub">${t('Everything you use often, in one easy place.','Alles Wichtige an einem Ort.')}</p><div class="settings-grid"><section class="card"><h2 class="panel-heading">${t('University services','Hochschulservices')}</h2><p class="page-sub" style="margin:7px 0 19px">${t('Links open the official university websites.','Links öffnen die offiziellen Hochschulseiten.')}</p>${LINKS.map(l=>`<a class="resource-row" href="${esc(l.href)}" target="_blank" rel="noopener noreferrer"><div class="resource-icon">${ic(l.icon,20)}</div><div class="resource-content"><strong>${l.name}</strong><small>${l.description[isDe()?1:0]}</small></div>${ic('external',16)}</a>`).join('')}</section><section style="display:grid;gap:19px;align-content:start"><div class="card"><div class="section-heading"><h2>${t('My reminders','Meine Erinnerungen')}</h2>${action('open-reminder',ic('plus',17),'icon-button','aria-label="Add reminder"')}</div>${reminderList(5)}</div><div class="card"><h2 class="panel-heading">${t('Preferences','Einstellungen')}</h2><div class="setting-row"><div><strong>${t('Campus','Campus')}</strong><small>${t('Choose your main campus','Wähle deinen Standort')}</small></div>${action('campus-modal',esc(campus().name)+' '+ic('chevron',14),'btn outline small')}</div><div class="setting-row"><div><strong>${t('Language','Sprache')}</strong><small>${t('App interface','App-Oberfläche')}</small></div><div class="setting-options">${action('set-lang','EN','setting-options-btn '+(data.lang==='en'?'active':''),'data-lang="en"')}${action('set-lang','DE','setting-options-btn '+(data.lang==='de'?'active':''),'data-lang="de"')}</div></div><div class="setting-row"><div><strong>${t('Appearance','Darstellung')}</strong><small>${t('Light or dark theme','Helles oder dunkles Design')}</small></div><div class="setting-options theme-choices">${action('set-theme',ic('moon',15)+' '+t('Dark','Dunkel'),'theme-choice '+(data.theme==='dark'?'active':''),'data-theme="dark" aria-pressed="'+(data.theme==='dark')+'"')}${action('set-theme',ic('sun',15)+' '+t('Light','Hell'),'theme-choice '+(data.theme==='light'?'active':''),'data-theme="light" aria-pressed="'+(data.theme==='light')+'"')}</div></div></div><div class="card"><h2 class="panel-heading">${t('Your data','Deine Daten')}</h2><p class="page-sub" style="margin:9px 0 16px">${t('Your personal schedule and reminders stay in this browser. No account or server.','Stundenplan und Erinnerungen bleiben in diesem Browser. Kein Konto und kein Server.')}</p><div style="display:flex;gap:9px;flex-wrap:wrap">${action('import-backup',ic('download',15)+' '+t('Import backup','Sicherung importieren'),'btn secondary small')}${action('export',ic('download',15)+' '+t('Export backup','Sicherung exportieren'),'btn secondary small')}${action('reset',ic('trash',15)+' '+t('Delete local data','Lokale Daten löschen'),'btn danger small')}</div></div><div class="card"><h2 class="panel-heading">${t('Calendar connection','Kalenderverbindung')}</h2><p class="page-sub">${t('Import .ics or connect a supported calendar URL.','ICS importieren oder kompatible Kalender-URL nutzen.')}</p>${action('calendar-dialog',ic('calendar',16)+' '+t('Manage timetable','Stundenplan verwalten'),'btn secondary small')}</div><div class="card"><h2 class="panel-heading">${t('Install on your phone','Auf dem Handy installieren')}</h2>${action('install-help',ic('download',16)+' '+t('Installation instructions','Installationsanleitung'),'btn outline small')}</div></section></div><div class="privacy-row">CampusLeaf · ${t('Independent, unofficial HSWT student companion. No university endorsement is implied.','Unabhängige, inoffizielle HSWT-Studierenden-App. Keine institutionelle Unterstützung wird behauptet.')}</div>`}
   function render(){if(document.documentElement.dataset) document.documentElement.dataset.firstTheme=data.theme;document.documentElement.lang=data.lang;document.body.classList.toggle('dark',data.theme==='dark');const pg={home,schedule,food,mail:mailPage,campus:campusPage,more}[screen]();$('#app').innerHTML=`<div class="app-shell">${sidebar()}<main class="content">${mobileTop()}${topbar()}<div class="page" id="main-content">${pg}</div></main>${mobileTabs()}</div>`;}
   function dialogShell(title,subtitle,content){closeDialog();const back=document.createElement('div');back.className='modal-backdrop';back.id='dialog-backdrop';back.innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-head"><div><div class="modal-title">${title}</div><div class="modal-sub">${subtitle}</div></div>${action('close-modal',ic('close',20),'icon-button','aria-label="Close"')}</div>${content}</div>`;document.body.appendChild(back);dialog=back;const field=back.querySelector('input,select,button');field?.focus()}
@@ -196,6 +292,10 @@
       // Popup blockers may reject the external tab; the visible inbox link remains available.
       if(directlyOpenMail && typeof window.open==='function')window.open(MAIL_URL,'_blank','noopener,noreferrer');
       screen=act==='nav'?b.dataset.screen:act==='go-schedule'?'schedule':'more';render();if(screen==='food')refreshMenu();window.scrollTo({top:0,behavior:'instant'});return}
+    if(act==='building-campus'){if(CAMPUSES[b.dataset.campus]){data.campus=b.dataset.campus;data.selectedVenue='';navigationState.selected='';navigationState.query='';save();render()}return}
+    if(act==='pick-building'){const building=BUILDINGS[data.campus].find(item=>item.code===b.dataset.building);if(building){navigationState.selected=building.code;render()}return}
+    if(act==='locate-me'){refreshPosition();return}
+    if(act==='building-directions'){const building=BUILDINGS[data.campus].find(item=>item.code===b.dataset.building);if(building)openNavigation(building);return}
     if(act==='toggle-mail-quick-open'){data.mailQuickOpen=!data.mailQuickOpen;save();render();flash(data.mailQuickOpen?t('Quick-open enabled','Direktöffnung aktiviert'):t('Quick-open disabled','Direktöffnung deaktiviert'));return}
     if(act==='calendar-dialog'){calendarDialog();return}
     if(act==='install-help'){installHelp();return}
@@ -212,7 +312,7 @@
     if(act==='open-class'){newClass();return}
     if(act==='open-reminder'){newReminder();return}
     if(act==='campus-modal'){campusDialog();return}
-    if(act==='select-campus'){data.campus=b.dataset.campus;data.selectedVenue='';menuState={status:'idle',dishes:[]};save();closeDialog();render();if(screen==='food')refreshMenu();flash(t('Campus updated','Campus aktualisiert'));return}
+    if(act==='select-campus'){navigationState.selected='';navigationState.query='';data.campus=b.dataset.campus;data.selectedVenue='';menuState={status:'idle',dishes:[]};save();closeDialog();render();if(screen==='food')refreshMenu();flash(t('Campus updated','Campus aktualisiert'));return}
     if(act==='settings'){settingsDialog();return}
     if(act==='search'){searchDialog();return}
     if(act==='close-modal'){closeDialog();return}
@@ -245,7 +345,7 @@
     }
   });
   document.addEventListener('change',async e=>{if(e.target.id==='menu-date-input'){const v=e.target.value;if(/^\d{4}-\d{2}-\d{2}$/.test(v)){menuDate=v;refreshMenu()}return}if(e.target.id==='calendar-file'&&e.target.files?.[0]){try{const file=e.target.files[0];if(file.size>1500000)throw new Error('File too large');await importCalendar(await file.text())}catch(err){flash(t('Could not read calendar file','Kalenderdatei konnte nicht gelesen werden'))}}});
-  document.addEventListener('input',e=>{if(e.target.id==='search-query')$('#search-results').innerHTML=searchResults(String(e.target.value).slice(0,100))});
+  document.addEventListener('input',e=>{if(e.target.id==='search-query')$('#search-results').innerHTML=searchResults(String(e.target.value).slice(0,100));if(e.target.id==='building-search'){navigationState.query=String(e.target.value).slice(0,80);const list=$('#building-results');if(list)list.innerHTML=buildingResultRows(navigationState.query)}});
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'&&dialog){closeDialog();return}
     if(e.key==='/'&&!dialog&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();searchDialog()}

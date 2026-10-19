@@ -37,7 +37,7 @@ jobs:
       - name: Install Capacitor Android build tools
         run: |
           npm init -y
-          npm install --no-audit --no-fund @capacitor/core@7 @capacitor/android@7 @capacitor/browser@7 @capacitor/app@7
+          npm install --no-audit --no-fund @capacitor/core@7 @capacitor/android@7 @capacitor/browser@7 @capacitor/app@7 @capacitor/geolocation@7
           npm install --no-audit --no-fund --save-dev @capacitor/cli@7 esbuild
       - name: Create native app bundle
         run: |
@@ -55,6 +55,8 @@ jobs:
           cat > native-entry.mjs <<'JS'
           import { Browser } from '@capacitor/browser';
           import { App } from '@capacitor/app';
+          import { Geolocation } from '@capacitor/geolocation';
+          window.CampusLeafNativeGeo = { getCurrentPosition: () => Geolocation.getCurrentPosition({enableHighAccuracy:true, timeout:15000}) };
           const external = value => {
             try { const url = new URL(String(value), location.href); return url.protocol === 'https:' && url.origin !== location.origin ? url.href : null; }
             catch { return null; }
@@ -98,6 +100,15 @@ jobs:
           JS
           npx cap add android
           npx cap sync android
+          node <<'JS'
+          const fs = require('fs');
+          const file='android/app/src/main/AndroidManifest.xml';
+          let xml=fs.readFileSync(file,'utf8');
+          if(!xml.includes('android.permission.ACCESS_FINE_LOCATION')) {
+            xml=xml.replace('<application', '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <application');
+          }
+          fs.writeFileSync(file,xml);
+          JS
       - name: Apply Android system bar and cutout insets
         run: |
           # Android 15+ forces edge-to-edge on newer target SDKs. Rather than
