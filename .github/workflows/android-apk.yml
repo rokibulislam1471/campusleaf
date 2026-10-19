@@ -1,0 +1,123 @@
+name: Build CampusLeaf Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/android-apk.yml'
+      - 'app.js'
+      - 'data-services.js'
+      - 'index.html'
+      - 'styles.css'
+      - 'assets/**'
+      - 'data/**'
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out CampusLeaf
+        uses: actions/checkout@v4
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Configure Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Test CampusLeaf
+        run: node --test tests/*.cjs
+      - name: Install Capacitor Android build tools
+        run: |
+          npm init -y
+          npm install --no-audit --no-fund @capacitor/core@7 @capacitor/android@7 @capacitor/browser@7 @capacitor/app@7
+          npm install --no-audit --no-fund --save-dev @capacitor/cli@7 esbuild
+      - name: Create native app bundle
+        run: |
+          mkdir -p www
+          cp index.html app.js data-services.js styles.css manifest.webmanifest www/
+          cp -r assets data www/
+          cat > capacitor.config.json <<'JSON'
+          {
+            "appId": "de.campusleaf.student",
+            "appName": "CampusLeaf",
+            "webDir": "www",
+            "server": {"androidScheme": "https"}
+          }
+          JSON
+          cat > native-entry.mjs <<'JS'
+          import { Browser } from '@capacitor/browser';
+          import { App } from '@capacitor/app';
+          const external = value => {
+            try { const url = new URL(String(value), location.href); return url.protocol === 'https:' && url.origin !== location.origin ? url.href : null; }
+            catch { return null; }
+          };
+          function openOfficialWebsite(value) {
+            const url = external(value);
+            if (!url) return false;
+            Browser.open({ url }).catch(error => console.error('Unable to open official website',error));
+            return true;
+          }
+          document.addEventListener('click', event => {
+            const anchor = event.target.closest?.('a[href]');
+            if (anchor && external(anchor.href)) { event.preventDefault(); openOfficialWebsite(anchor.href); }
+          }, true);
+          const previousOpen = window.open.bind(window);
+          window.open = (url, target, features) => {
+            if (openOfficialWebsite(url)) return null;
+            return previousOpen(url, target, features);
+          };
+          App.addListener('backButton', () => {
+            const home = document.querySelector('[data-action="nav"][data-screen="home"]');
+            if (home) home.click(); else App.exitApp();
+          });
+          JS
+          npx esbuild native-entry.mjs --bundle --format=iife --platform=browser --outfile=www/native-bridge.js
+          node <<'JS'
+          const fs = require('fs');
+          const file = 'www/index.html';
+          let html = fs.readFileSync(file, 'utf8');
+          html = html.replace('</body>', '  <script src="./native-bridge.js" defer></script>\n</body>');
+          fs.writeFileSync(file, html);
+          const menuFile = 'www/data-services.js';
+          let menu = fs.readFileSync(menuFile, 'utf8');
+          menu = menu.replace("getJSON('./data/menu-snapshot.json')", "getJSON('https://rokibulislam1471.github.io/campusleaf/data/menu-snapshot.json')");
+          fs.writeFileSync(menuFile, menu);
+          const appFile = 'www/app.js';
+          let app = fs.readFileSync(appFile, 'utf8');
+          app = app.replace("if('serviceWorker' in navigator && window.location.protocol !== 'file:')", "if(false && 'serviceWorker' in navigator && window.location.protocol !== 'file:')");
+          fs.writeFileSync(appFile, app);
+          JS
+          npx cap add android
+          npx cap sync android
+      - name: Compile APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug
+      - name: Prepare downloadable APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk CampusLeaf-Android-Beta.apk
+      - name: Upload APK as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CampusLeaf-Android-Beta-APK
+          path: CampusLeaf-Android-Beta.apk
+          retention-days: 30
+      - name: Publish APK on GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view android-beta >/dev/null 2>&1; then
+            gh release upload android-beta CampusLeaf-Android-Beta.apk --clobber
+          else
+            gh release create android-beta CampusLeaf-Android-Beta.apk \
+              --title 'CampusLeaf Android beta' --prerelease \
+              --notes 'Installable Android beta APK built from the public CampusLeaf source. Android may warn about apps installed outside Google Play. This is a debug-signed testing build, not a production-signed release. Later beta builds may require uninstalling the prior version. HSWT student mail opens only through the official university website; private MyCampus timetable integration is not available.'
+          fi
