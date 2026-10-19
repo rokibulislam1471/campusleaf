@@ -42,3 +42,75 @@ body.dark .sync-panel{background:linear-gradient(120deg,#203d2d,#254834);border-
 body.dark .mail-quick-panel{background:#253f31;border-color:#37614c}
 body.dark .mail-quick-label strong{color:#d0f1d5}
 body.dark .mail-quick-label span,body.dark .mail-quick-note{color:#abcdb3}
+
+
+/* CampusLeaf mobile display fix (2026-10):
+   - The browser/PWA uses CSS safe-area insets.
+   - The native Android wrapper applies system bar / cutout insets to the WebView
+     and marks its document .campusleaf-native to avoid duplicate padding.
+   Desktop layouts and tablet side navigation are unchanged. */
+@media screen and (max-width: 760px) {
+  :root { --campusleaf-mobile-gutter: clamp(14px, 4vw, 20px); }
+  html { scroll-padding-top: 12px; }
+  .app-shell {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-bottom: calc(77px + env(safe-area-inset-bottom, 0px));
+  }
+  .mobile-top {
+    min-width: 0;
+    gap: 8px;
+    min-height: 65px;
+    padding-top: max(16px, calc(10px + env(safe-area-inset-top, 0px)));
+    padding-right: var(--campusleaf-mobile-gutter);
+    padding-bottom: 11px;
+    padding-left: var(--campusleaf-mobile-gutter);
+  }
+  .mobile-top .brand { min-width: 0; flex: 1 1 auto; }
+  .mobile-top .brand-name { font-size: clamp(18px, 5vw, 21px); }
+  .mobile-top .brand-sub { font-size: clamp(8px, 2vw, 9px); }
+  .mobile-top .top-actions { gap: 7px; flex: 0 0 auto; }
+  .mobile-top .icon-button { width: 38px; height: 38px; }
+  .page {
+    padding-left: var(--campusleaf-mobile-gutter);
+    padding-right: var(--campusleaf-mobile-gutter);
+    padding-bottom: 26px;
+    min-width: 0;
+  }
+  .hero { min-height: 0; padding: clamp(19px, 5vw, 25px); border-radius: 20px; }
+  .hero h1 {
+    font-size: clamp(27px, 7.8vw, 35px);
+    line-height: 1.12;
+    overflow-wrap: break-word;
+    margin-top: 19px;
+  }
+  .hero p { font-size: clamp(11px, 3.1vw, 13px); line-height: 1.6; }
+  .hero-footer { margin-top: 15px; }
+  .quick-grid, .dashboard-grid, .main-column { min-width: 0; }
+  .mobile-tabs {
+    padding: 7px 5px calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+  .mobile-tab { min-height: 54px; padding: 6px 0 4px; gap: 3px; }
+  .toast { bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
+  .modal-backdrop {
+    padding-top: calc(14px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+  .modal { max-height: 90vh; max-height: 90dvh; }
+  /* Native insets are supplied once by MainActivity. */
+  html.campusleaf-native .app-shell { padding-bottom: 77px; }
+  html.campusleaf-native .mobile-top { padding-top: 13px; }
+  html.campusleaf-native .mobile-tabs { padding-bottom: 8px; }
+  html.campusleaf-native .toast { bottom: 90px; }
+  html.campusleaf-native .modal-backdrop { padding: 14px; }
+}
+@media screen and (max-width: 380px) {
+  .mobile-top .brand { gap: 7px; }
+  .mobile-top .brand-mark { width: 33px; height: 33px; }
+  .mobile-top .brand-name { font-size: 18px; }
+  .mobile-top .icon-button { width: 35px; height: 35px; }
+  .hero h1 { font-size: clamp(25px, 7.7vw, 30px); }
+  .mobile-tab { font-size: 9px; }
+  .mobile-tab-icon { width: 29px; }
+  .tile-title { overflow-wrap: anywhere; }
+}
