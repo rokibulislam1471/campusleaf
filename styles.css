@@ -184,6 +184,42 @@ body.dark .btn.secondary {
 }
 
 
+/* Timetable day selector: date is primary, scheduled-class count is secondary. */
+.day-tab {
+  flex: 0 0 auto;
+  min-width: 72px;
+  padding: 11px 12px;
+  gap: 4px;
+  color: var(--muted);
+}
+.day-tab strong {
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.day-tab .day-count {
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.day-tab.active,
+.day-tab.active strong,
+.day-tab.active .day-count,
+body.dark .day-tab.active strong,
+body.dark .day-tab.active .day-count {
+  color: #fff;
+}
+body.dark .day-tab:not(.active) strong { color: #E9F4E9; }
+body.dark .day-tab:not(.active) .day-count { color: #BFD3C4; }
+@media (max-width: 760px) {
+  .day-tabs { gap: 6px; }
+  .day-tab { min-width: 65px; padding: 11px 8px; }
+  .day-tab strong { font-size: 19px; }
+  .day-tab .day-count { font-size: 9px; }
+}
+
 /* CampusLeaf Feedback email — Quick settings footer (both themes) */
 .privacy-row .feedback-contact {
   display: flex;

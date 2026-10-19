@@ -1,0 +1,227 @@
+name: Build CampusLeaf Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/android-apk.yml'
+      - 'app.js'
+      - 'data-services.js'
+      - 'index.html'
+      - 'styles.css'
+      - 'assets/**'
+      - 'data/**'
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out CampusLeaf
+        uses: actions/checkout@v4
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Configure Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Test CampusLeaf
+        run: node --test tests/*.cjs
+      - name: Install Capacitor Android build tools
+        run: |
+          npm init -y
+          npm install --no-audit --no-fund @capacitor/core@7 @capacitor/android@7 @capacitor/browser@7 @capacitor/app@7 @capacitor/geolocation@7 @capacitor/app-launcher@7
+          npm install --no-audit --no-fund --save-dev @capacitor/cli@7 esbuild
+      - name: Create native app bundle
+        run: |
+          mkdir -p www
+          cp index.html app.js data-services.js styles.css manifest.webmanifest www/
+          cp -r assets data www/
+          cat > capacitor.config.json <<'JSON'
+          {
+            "appId": "de.campusleaf.student",
+            "appName": "CampusLeaf",
+            "webDir": "www",
+            "server": {"androidScheme": "https"}
+          }
+          JSON
+          cat > native-entry.mjs <<'JS'
+          import { Browser } from '@capacitor/browser';
+          import { App } from '@capacitor/app';
+          import { Geolocation } from '@capacitor/geolocation';
+          import { AppLauncher } from '@capacitor/app-launcher';
+          window.CampusLeafNativeGeo = { getCurrentPosition: () => Geolocation.getCurrentPosition({enableHighAccuracy:true, timeout:15000}) };
+          const external = value => {
+            try { const url = new URL(String(value), location.href); return url.protocol === 'https:' && url.origin !== location.origin ? url.href : null; }
+            catch { return null; }
+          };
+          function openOfficialWebsite(value) {
+            const url = external(value);
+            if (!url) return false;
+            Browser.open({ url }).catch(error => console.error('Unable to open official website',error));
+            return true;
+          }
+          function isCampusLeafFeedback(value) {
+            try {
+              const url = new URL(String(value), location.href);
+              return url.protocol === 'mailto:' && url.pathname.toLowerCase() === 'rokibul.islam@student.hswt.de';
+            } catch { return false; }
+          }
+          document.addEventListener('click', event => {
+            const anchor = event.target.closest?.('a[href]');
+            if (!anchor) return;
+            if (isCampusLeafFeedback(anchor.href)) {
+              event.preventDefault();
+              AppLauncher.openUrl({ url: anchor.href }).catch(error => console.error('No mail app available', error));
+              return;
+            }
+            if (external(anchor.href)) { event.preventDefault(); openOfficialWebsite(anchor.href); }
+          }, true);
+          const previousOpen = window.open.bind(window);
+          window.open = (url, target, features) => {
+            if (openOfficialWebsite(url)) return null;
+            return previousOpen(url, target, features);
+          };
+          App.addListener('backButton', () => {
+            const home = document.querySelector('[data-action="nav"][data-screen="home"]');
+            if (home) home.click(); else App.exitApp();
+          });
+          JS
+          npx esbuild native-entry.mjs --bundle --format=iife --platform=browser --outfile=www/native-bridge.js
+          node <<'JS'
+          const fs = require('fs');
+          const file = 'www/index.html';
+          let html = fs.readFileSync(file, 'utf8');
+          html = html.replace('</head>', '  <script>document.documentElement.classList.add(\"campusleaf-native\");</script>\n</head>');
+          html = html.replace('</body>', '  <script src="./native-bridge.js" defer></script>\n</body>');
+          fs.writeFileSync(file, html);
+          const menuFile = 'www/data-services.js';
+          let menu = fs.readFileSync(menuFile, 'utf8');
+          menu = menu.replace("getJSON('./data/menu-snapshot.json')", "getJSON('https://rokibulislam1471.github.io/campusleaf/data/menu-snapshot.json')");
+          fs.writeFileSync(menuFile, menu);
+          const appFile = 'www/app.js';
+          let app = fs.readFileSync(appFile, 'utf8');
+          app = app.replace("if('serviceWorker' in navigator && window.location.protocol !== 'file:')", "if(false && 'serviceWorker' in navigator && window.location.protocol !== 'file:')");
+          fs.writeFileSync(appFile, app);
+          JS
+          npx cap add android
+          npx cap sync android
+          node <<'JS'
+          const fs = require('fs');
+          const file='android/app/src/main/AndroidManifest.xml';
+          let xml=fs.readFileSync(file,'utf8');
+          if(!xml.includes('android.permission.ACCESS_FINE_LOCATION')) {
+            xml=xml.replace('<application', '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <application');
+          }
+          fs.writeFileSync(file,xml);
+          JS
+      - name: Apply Android system bar and cutout insets
+        run: |
+          # Android 15+ forces edge-to-edge on newer target SDKs. Rather than
+          # depending on WebView CSS env() support, place the entire WebView
+          # inside the safe area returned by the OS on every device.
+          cat > android/app/src/main/java/de/campusleaf/student/MainActivity.java <<'JAVA'
+          package de.campusleaf.student;
+
+          import android.graphics.Color;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.view.ViewGroup;
+          import androidx.core.graphics.Insets;
+          import androidx.core.view.ViewCompat;
+          import androidx.core.view.WindowCompat;
+          import androidx.core.view.WindowInsetsCompat;
+          import androidx.core.view.WindowInsetsControllerCompat;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+              // Leave physical system bars visible, while avoiding overlaps.
+              WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+              getWindow().getDecorView().setBackgroundColor(Color.rgb(16, 31, 26));
+              WindowInsetsControllerCompat controller =
+                  WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+              controller.setAppearanceLightStatusBars(false);
+              controller.setAppearanceLightNavigationBars(false);
+
+              final View webView = bridge.getWebView();
+              ViewCompat.setOnApplyWindowInsetsListener(webView, (view, windowInsets) -> {
+                Insets bars = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() |
+                    WindowInsetsCompat.Type.displayCutout());
+                Insets keyboard = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+                int bottom = Math.max(bars.bottom, keyboard.bottom);
+                ViewGroup.MarginLayoutParams params =
+                    (ViewGroup.MarginLayoutParams) view.getLayoutParams();
+                if (params.leftMargin != bars.left || params.topMargin != bars.top ||
+                    params.rightMargin != bars.right || params.bottomMargin != bottom) {
+                  params.setMargins(bars.left, bars.top, bars.right, bottom);
+                  view.setLayoutParams(params);
+                }
+                return windowInsets;
+              });
+              ViewCompat.requestApplyInsets(webView);
+            }
+          }
+          JAVA
+      - name: Apply CampusLeaf leaf icon and splash resources
+        run: |
+          set -e
+          RES=android/app/src/main/res
+          for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            cp assets/android-brand/mipmap-"$density"/ic_launcher.png "$RES/mipmap-$density/ic_launcher.png"
+            cp assets/android-brand/mipmap-"$density"/ic_launcher_round.png "$RES/mipmap-$density/ic_launcher_round.png"
+            cp assets/android-brand/mipmap-"$density"/ic_launcher_foreground.png "$RES/mipmap-$density/ic_launcher_foreground.png"
+          done
+          mkdir -p "$RES/mipmap-anydpi-v26" "$RES/drawable-nodpi"
+          cat > "$RES/mipmap-anydpi-v26/ic_launcher.xml" <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+            <background android:drawable="@android:color/transparent" />
+            <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+          </adaptive-icon>
+          XML
+          cp "$RES/mipmap-anydpi-v26/ic_launcher.xml" "$RES/mipmap-anydpi-v26/ic_launcher_round.xml"
+          cp assets/android-brand/splash.png "$RES/drawable-nodpi/campusleaf_splash.png"
+          python3 <<'PYTHON'
+          from pathlib import Path
+          p=Path('android/app/src/main/res/values/styles.xml')
+          if p.exists():
+              text=p.read_text()
+              if '@drawable/splash' in text:
+                  text=text.replace('@drawable/splash', '@drawable/campusleaf_splash')
+                  p.write_text(text)
+          PYTHON
+      - name: Compile APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug
+      - name: Prepare downloadable APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk CampusLeaf-Android-Beta.apk
+      - name: Upload APK as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CampusLeaf-Android-Beta-APK
+          path: CampusLeaf-Android-Beta.apk
+          retention-days: 30
+      - name: Publish APK on GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view android-beta >/dev/null 2>&1; then
+            gh release upload android-beta CampusLeaf-Android-Beta.apk --clobber
+          else
+            gh release create android-beta CampusLeaf-Android-Beta.apk \
+              --title 'CampusLeaf Android beta' --prerelease \
+              --notes 'Installable Android beta APK built from the public CampusLeaf source. Android may warn about apps installed outside Google Play. This is a debug-signed testing build, not a production-signed release. Later beta builds may require uninstalling the prior version. HSWT student mail opens only through the official university website; private MyCampus timetable integration is not available.'
+          fi

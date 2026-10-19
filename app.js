@@ -1,0 +1,361 @@
+/* CampusLeaf — original, dependency-free, student-built HSWT companion.
+   Official university data is linked externally, never scraped or impersonated. */
+(() => {
+  'use strict';
+  const KEY = 'campusleaf.hswt.v1';
+  const CAMPUSES = {
+    weihenstephan: {
+      name: 'Weihenstephan', place: 'Freising', address: 'Am Hofgarten 4, 85354 Freising',
+      buildings: ['A1–A10', 'C4–C5', 'F9', 'H1–H14'],
+      info: 'https://www.hswt.de/studium/im-studium/campusleben/campus-weihenstephan',
+      food: 'https://www.hswt.de/studium/im-studium/campusleben/campus-weihenstephan'
+    },
+    triesdorf: {
+      name: 'Triesdorf', place: 'Weidenbach', address: 'Markgrafenstr. 16, 91746 Weidenbach',
+      buildings: ['A', 'B', 'C', 'D', 'E', 'F', 'H'],
+      info: 'https://www.hswt.de/studium/im-studium/campusleben/campus-triesdorf',
+      food: 'https://www.hswt.de/studium/im-studium/campusleben/campus-triesdorf'
+    }
+  };
+  // Street addresses transcribed from official HSWT campus directories (2026-10-19).
+  // Street-level routing is NOT a verified entrance or room pin.
+  const BUILDINGS = Object.freeze({
+    weihenstephan: [
+      {code:"A1", address:"Am Hofgarten 1, 85354 Freising, Germany"},
+      {code:"A2", address:"Am Hofgarten 3, 85354 Freising, Germany"},
+      {code:"A3", address:"Am Hofgarten 10, 85354 Freising, Germany"},
+      {code:"A4", address:"Am Hofgarten 4, 85354 Freising, Germany"},
+      {code:"A5", address:"Am Hofgarten 6, 85354 Freising, Germany"},
+      {code:"A6", address:"Am Hofgarten 4, 85354 Freising, Germany"},
+      {code:"A8", address:"Am Hofgarten 2, 85354 Freising, Germany"},
+      {code:"A9", address:"Weihenstephaner Berg 16, 85354 Freising, Germany"},
+      {code:"A10", address:"Weihenstephaner Berg 17, 85354 Freising, Germany"},
+      {code:"C4", address:"Weihenstephaner Berg 5, 85354 Freising, Germany"},
+      {code:"C5", address:"Vöttinger Straße 27, 85354 Freising, Germany"},
+      {code:"D1", address:"Am Staudengarten 1, 85354 Freising, Germany"},
+      {code:"F9", address:"Hans-Carl-von-Carlowitz-Platz 3, 85354 Freising, Germany"},
+      {code:"H1", address:"Am Staudengarten 13, 85354 Freising, Germany"},
+      {code:"H3", address:"Am Staudengarten 12a, 85354 Freising, Germany"},
+      {code:"H6", address:"Am Staudengarten 11, 85354 Freising, Germany"},
+      {code:"H7", address:"Am Staudengarten 7, 85354 Freising, Germany"},
+      {code:"H8", address:"Am Staudengarten 14, 85354 Freising, Germany"},
+      {code:"H9", address:"Am Staudengarten 12, 85354 Freising, Germany"},
+      {code:"H10", address:"Am Staudengarten 10, 85354 Freising, Germany"},
+      {code:"H11", address:"Am Staudengarten 8, 85354 Freising, Germany"},
+      {code:"H14", address:"Lange Point 2, 85354 Freising, Germany"},
+      {code:"H21", address:"Am Staudengarten 9, 85354 Freising, Germany"},
+    ],
+    triesdorf: [
+      {code:"A", address:"Steingruberstraße 2, 91746 Weidenbach, Germany"},
+      {code:"B", address:"Markgrafenstraße 12, 91746 Weidenbach, Germany"},
+      {code:"C", address:"Steingruberstraße 1a, 91746 Weidenbach, Germany"},
+      {code:"D", address:"Steingruberstraße 1, 91746 Weidenbach, Germany"},
+      {code:"E", address:"Steingruberstraße 1a, 91746 Weidenbach, Germany"},
+      {code:"F", address:"Markgrafenstraße 16, 91746 Weidenbach, Germany"},
+      {code:"H", address:"Markgrafenstraße 14, 91746 Weidenbach, Germany"},
+    ],
+  });
+  const MAIL_URL = 'https://xmail.mwn.de/owa/';
+  const MAIL_HELP_URL = 'https://www.hswt.de/en/studium/before-the-study/freshman-info';
+  const LINKS = [
+    { name: 'HSWT Webmail', description: ['Your personal university email inbox', 'Dein persönliches Hochschul-E-Mail-Postfach'], icon: 'mail', href: MAIL_URL },
+    { name: 'MyCampus', description: ['Grades, exams and student portal', 'Noten, Prüfungen und Studienportal'], icon: 'graduation', href: 'https://mycampus.hswt.de/' },
+    { name: 'Moodle', description: ['Courses and learning materials', 'Kurse und Lernmaterialien'], icon: 'book', href: 'https://moodle.hswt.de/' },
+    { name: 'HSWT Library', description: ['Libraries, catalog and services', 'Bibliotheken, Katalog und Services'], icon: 'library', href: 'https://www.hswt.de/hochschule/organisation/zentrale-einrichtungen/bibliothek' },
+    { name: 'HSWT Website', description: ['University news and information', 'Hochschulnachrichten und Informationen'], icon: 'globe', href: 'https://www.hswt.de/' },
+    { name: 'Student support', description: ['Contacts and student services', 'Ansprechpersonen und Beratungsstellen'], icon: 'heart', href: 'https://www.hswt.de/en/study/during-study/service-advice' },
+    { name: 'Campus directions', description: ['Maps and building information', 'Lagepläne und Gebäudeinformationen'], icon: 'map', href: 'https://www.hswt.de/anfahrt/' }
+  ];
+  const DAYS = [['Mon','Mo'],['Tue','Di'],['Wed','Mi'],['Thu','Do'],['Fri','Fr'],['Sat','Sa'],['Sun','So']];
+  const ICONS = {
+    'mail':'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+    'shield':'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+    'refresh':'<path d="M20 7v5h-5M4 17v-5h5"/><path d="M5 9a7 7 0 0 1 12-3l3 6M4 12l3 6a7 7 0 0 0 12-3"/>',
+    'chevron-right':'<path d="m9 18 6-6-6-6"/>',
+    'chevron-left':'<path d="m15 18-6-6 6-6"/>',
+    home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21v-7h6v7"/>',
+    calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
+    utensils:'<path d="M4 3v7a3 3 0 0 0 6 0V3M7 3v18M17 3c-2 2-3 4-3 8v2h5V3M19 13v8"/>',
+    map:'<path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6ZM9 3v15M15 6v15"/>',
+    more:'<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
+    arrow:'<path d="M5 12h14m-7-7 7 7-7 7"/>',external:'<path d="M13 5h6v6m0-6-9 9"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/>',
+    plus:'<path d="M12 5v14M5 12h14"/>',close:'<path d="M18 6 6 18M6 6l12 12"/>',
+    trash:'<path d="M3 6h18M8 6V4h8v2m3 0-1 15H6L5 6m5 4v7m4-7v7"/>',
+    pin:'<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
+    book:'<path d="M4 19V5a2 2 0 0 1 2-2h14v17H6a2 2 0 0 1 0-4h14M4 19a2 2 0 0 0 2 2"/>',
+    graduation:'<path d="m2 9 10-5 10 5-10 5zM6 12v5c4 3 8 3 12 0v-5M22 9v6"/>',
+    library:'<path d="M4 20V4m5 16V4m5 16V4m5 16-2-16M2 21h20M2 3h18"/>',
+    globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>',
+    heart:'<path d="M20.5 8.5c0 5-8.5 11-8.5 11s-8.5-6-8.5-11a4.6 4.6 0 0 1 8.5-2.2 4.6 4.6 0 0 1 8.5 2.2Z"/>',
+    search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
+    settings:'<path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l-2 2-1.8-.3a1.7 1.7 0 0 0-1.4 1L14 22h-4l-.5-2.4a1.7 1.7 0 0 0-1.4-1l-1.8.3-2-2a1.7 1.7 0 0 0 .3-1.9l-1.9-1V10l1.9-1a1.7 1.7 0 0 0-.3-1.9l2-2 1.8.3a1.7 1.7 0 0 0 1.4-1L10 2h4l.5 2.4a1.7 1.7 0 0 0 1.4 1l1.8-.3 2 2a1.7 1.7 0 0 0-.3 1.9l1.9 1v4z"/>',
+    chevron:'<path d="m6 9 6 6 6-6"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    compass:'<circle cx="12" cy="12" r="9"/><path d="m16 8-2 6-6 2 2-6z"/>',
+    info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7h.01"/>',
+    bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8ZM10 21h4"/>',
+    download:'<path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/>',
+    check:'<path d="m4 12 5 5 11-11"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    moon:'<path d="M20 14.7A8 8 0 0 1 9.3 4 8 8 0 1 0 20 14.7Z"/>',
+    coffee:'<path d="M3 8h14v7a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8Zm14 1h2a3 3 0 0 1 0 6h-2M5 4v2m5-2v2m5-2v2M2 22h17"/>',
+    menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',leaf:'<path d="M20 3C9 3 4 7 4 14a6 6 0 0 0 6 6c7 0 11-8 10-17ZM4 20c2-5 6-9 12-12"/>',
+    users:'<circle cx="9" cy="8" r="3"/><path d="M3 20v-2c0-3 3-5 6-5s6 2 6 5v2M17 5a3 3 0 0 1 0 6M17 14c2 0 4 2 4 5v1"/>'
+  };
+  const $ = sel => document.querySelector(sel);
+  const ic = (name, size = 20) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ICONS.info}</svg>`;
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let data = { campus:'weihenstephan', lang:'en', theme:'dark', classes:[], reminders:[], calendarEvents:[],calendarUpdated:'',feedUrl:'',selectedVenue:'',favoriteVenues:[],diet:'all',mailQuickOpen:false };
+  try {
+    const stored = JSON.parse(localStorage.getItem(KEY) || '{}');
+    if (stored && typeof stored === 'object') {
+      data = { ...data, ...stored,
+        classes: Array.isArray(stored.classes) ? stored.classes.slice(0,500) : [],
+        reminders: Array.isArray(stored.reminders) ? stored.reminders.slice(0,500) : [], calendarEvents:Array.isArray(stored.calendarEvents)?stored.calendarEvents.slice(0,3500):[],favoriteVenues:Array.isArray(stored.favoriteVenues)?stored.favoriteVenues.slice(0,12):[] };
+      if (!CAMPUSES[data.campus]) data.campus = 'weihenstephan';
+      if (!['en','de'].includes(data.lang)) data.lang = 'en';
+      if (!['light','dark'].includes(data.theme)) data.theme = 'dark';
+      // Only the shortcut preference is stored. No university passwords or tokens.
+      data.mailQuickOpen = data.mailQuickOpen === true;
+    }
+  } catch(e) { console.warn('Stored data not readable',e); }
+  let screen='home', dayIndex=(new Date().getDay()+6)%7, dialog=null, toastTimeout=null, weekOffset=0, menuDate=CampusServices.dateKey(new Date(new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())+'T12:00:00')), menuState={status:'idle',dishes:[]},menuRequest=0, feedSyncing=false;
+  const isDe = () => data.lang==='de';
+  const t = (en,de) => isDe() ? de : en;
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch(e) { flash(t('Storage unavailable','Speichern nicht möglich')); } };
+  const TODAY = () => new Date();
+  const locale = () => isDe()?'de-DE':'en-GB';
+  const fmtDate = (d,opts) => new Intl.DateTimeFormat(locale(),opts).format(d);
+  const campus = () => CAMPUSES[data.campus];
+  const mapUrl = c => 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(c.address);
+  const a = (url,text,klass='') => `<a class="${klass}" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+  const action = (id,label,klass='btn',args='') => `<button type="button" class="${klass}" data-action="${id}" ${args}>${label}</button>`;
+  function flash(message) {
+    $('.toast')?.remove();
+    const el=document.createElement('div'); el.className='toast';el.setAttribute('role','status');el.textContent=message;
+    document.body.appendChild(el);
+    clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.remove(),2600);
+  }
+  const nav = [{id:'home',name:['Dashboard','Start'],icon:'home'}, {id:'schedule',name:['Timetable','Stundenplan'],icon:'calendar'}, {id:'food',name:['Mensa','Mensa'],icon:'utensils'}, {id:'mail',name:['Email','E-Mail'],icon:'mail'}, {id:'campus',name:['Campus','Campus'],icon:'map'}, {id:'more',name:['More','Mehr'],icon:'more'}];
+  function brand(){return `<div class="brand"><div class="brand-mark"><img src="./assets/favicon.svg" alt="" aria-hidden="true" width="42" height="42"></div><div><div class="brand-name">campusleaf<span style="color:#79B387">.</span></div><div class="brand-sub">Student companion</div></div></div>`}
+  function sidebar(){return `<aside class="sidebar">${brand()}<div><div class="aside-label">${t('Workspace','Navigation')}</div><nav class="nav-list" aria-label="Main navigation">${nav.map(n=>`<button data-action="nav" data-screen="${n.id}" class="nav-btn ${screen===n.id?'active':''}"><span class="nav-icon">${ic(n.icon,19)}</span>${n.name[isDe()?1:0]}</button>`).join('')}</nav><div class="aside-label" style="margin-top:32px">${t('Tools','Werkzeuge')}</div><nav class="nav-list"><button data-action="open-reminder" class="nav-btn"><span class="nav-icon">${ic('bell',19)}</span>${t('Add reminder','Erinnerung hinzufügen')}</button><button data-action="search" class="nav-btn"><span class="nav-icon">${ic('search',19)}</span>${t('Quick search','Schnellsuche')}<span class="kbd">/</span></button></nav></div><div class="sidebar-bottom"><div class="campus-switch"><div class="campus-top">${ic('pin',14)} ${t('YOUR CAMPUS','DEIN CAMPUS')}</div><button data-action="campus-modal" class="campus-select">${esc(campus().name)} ${ic('chevron',16)}</button></div><div class="indie-note">${t('Independent student project · Not an official HSWT app.','Unabhängiges Studierendenprojekt · Keine offizielle HSWT-App.')}</div></div></aside>`}
+  function topbar(){return `<header class="topbar"><div class="top-title"><span class="eyebrow">HSWT · ${esc(campus().name)}</span><strong>${screen==='home'?t('Overview','Übersicht'):nav.find(n=>n.id===screen).name[isDe()?1:0]}</strong></div><div class="top-actions"><span class="top-status"><span class="status-dot"></span>${t('Local-first app','Lokale Daten')}</span>${action('search',ic('search',18),'icon-button','aria-label="Search"')}${action('settings',ic('settings',18),'icon-button','aria-label="Settings"')}<div class="avatar" aria-label="Student profile">S</div></div></header>`}
+  function mobileTop(){return `<div class="mobile-top">${brand()}<div class="top-actions">${action('search',ic('search',18),'icon-button','aria-label="Search"')}${action('settings',ic('settings',18),'icon-button','aria-label="Settings"')}</div></div>`}
+  function mobileTabs(){return `<nav class="mobile-tabs" aria-label="Bottom navigation">${nav.map(n=>`<button class="mobile-tab ${screen===n.id?'active':''}" data-action="nav" data-screen="${n.id}"><span class="mobile-tab-icon">${ic(n.icon,20)}</span>${n.name[isDe()?1:0]}</button>`).join('')}</nav>`}
+  const shortDay = index => DAYS[index][isDe()?1:0];
+  const weekStart = (offset=weekOffset) => {const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7)+(offset*7));return d};
+  const dayDate = (day,offset=weekOffset) => {const d=weekStart(offset);d.setDate(d.getDate()+day);return CampusServices.dateKey(d)};
+  const classesFor = (day,offset=weekOffset) => [...data.classes.filter(c=>Number(c.day)===day),...data.calendarEvents.filter(c=>c.date===dayDate(day,offset))].sort((a,b)=>String(a.start).localeCompare(String(b.start)));
+  const upcomingReminders = () => data.reminders.filter(r=>r.date >= dateISO(new Date())).sort((a,b)=>(a.date+' '+a.time).localeCompare(b.date+' '+b.time));
+  function dateISO(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+  function empty(icon,title,desc,button){return `<div class="empty"><div class="empty-icon">${ic(icon,20)}</div><strong>${title}</strong><p>${desc}</p>${button||''}</div>`}
+  function sectionTitle(title,moreText,moreAction){return `<div class="section-heading"><h2>${title}</h2>${moreAction?action(moreAction,`${moreText} ${ic('arrow',14)}`,'small-link'):''}</div>`}
+  function classList(day,limit=99){const list=classesFor(day,screen==='home'?0:weekOffset).slice(0,limit);return list.length?list.map(c=>`<div class="class-card"><div class="class-time">${esc(c.start)}<span>${esc(c.end)}</span></div><div class="class-stripe"></div><div class="class-content"><strong>${esc(c.title)}</strong><div class="subrow"><small>${ic('pin',12)} ${esc(c.room||t('Location not set','Kein Raum'))}</small>${c.teacher?`<small>${esc(c.teacher)}</small>`:''}</div></div>${c.source==='ics'?`<span class="source-tag" title="Imported from calendar">iCal</span>`:action('delete-class',ic('trash',17),'delete-btn',`data-id="${esc(c.id)}" aria-label="Delete class"`)}</div>`).join(''):empty('calendar',t('No classes for this day','Keine Veranstaltungen an diesem Tag'),t('Build your weekly schedule in a few taps.','Erstelle deinen Wochenplan in wenigen Schritten.'),action('open-class',ic('plus',14)+' '+t('Add a class','Veranstaltung hinzufügen'),'btn small'))}
+  function reminderList(limit=3){const list=upcomingReminders().slice(0,limit);return list.length?list.map(r=>`<div class="small-panel-row"><span class="small-panel-icon">${ic('bell',17)}</span><div class="small-panel-text"><strong>${esc(r.title)}</strong><small>${esc(r.date)} · ${esc(r.time||'—')}</small></div>${action('delete-reminder',ic('trash',15),'delete-btn',`data-id="${esc(r.id)}" aria-label="Delete reminder"`)}</div>`).join(''):empty('bell',t('Nothing due soon','Keine Termine in Kürze'),t('Save personal deadlines and reminders here.','Speichere hier deine persönlichen Fristen.'),action('open-reminder',ic('plus',13)+' '+t('Add reminder','Erinnerung hinzufügen'),'btn small'))}
+  function home(){const today=TODAY(); const todayClass=classesFor((today.getDay()+6)%7,0);return `<div class="dashboard-grid"><div class="main-column"><section class="hero"><div class="hero-orbit"></div><div class="hero-leaf">C</div><div class="hero-top">${ic('leaf',15)} ${t('YOUR STUDENT LIFE, SIMPLIFIED','DEIN STUDIUM, GANZ EINFACH')}</div><h1>${t('Everything campus.','Alles rund um den Campus.')}<br/><span style="color:#C6F2B4">${t('One beautiful place.','An einem Ort.')}</span></h1><p>${t('Your timetable, campus essentials and important links — right where you need them.','Dein Stundenplan, Campusinfos und wichtige Links – alles an einem Ort.')}</p><div class="hero-footer">${action('open-class',t('Set up my timetable','Stundenplan erstellen')+' '+ic('arrow',14),'white-button')}<span class="hero-meta">${ic('pin',13)} ${esc(campus().name)} ${t('campus','Campus')}</span></div></section><section>${sectionTitle(t('Explore your day','Alles für deinen Tag'),t('View all','Alle ansehen'),'go-more')}<div class="quick-grid"><button class="quick-tile" data-action="nav" data-screen="schedule"><span class="tile-icon green">${ic('calendar',20)}</span><span class="tile-title">${t('Timetable','Stundenplan')}</span><span class="tile-sub">${t('Your weekly classes','Deine Veranstaltungen')}</span></button><button class="quick-tile" data-action="nav" data-screen="food"><span class="tile-icon orange">${ic('utensils',20)}</span><span class="tile-title">${t('Mensa','Mensa')}</span><span class="tile-sub">${t('Dining & menus','Essen & Speisepläne')}</span></button><button class="quick-tile" data-action="nav" data-screen="mail"><span class="tile-icon mail-tile">${ic('mail',20)}</span><span class="tile-title">${t('HSWT Email','HSWT E-Mail')}</span><span class="tile-sub">${t('Check student mail','Postfach öffnen')}</span></button><button class="quick-tile" data-action="nav" data-screen="campus"><span class="tile-icon blue">${ic('map',20)}</span><span class="tile-title">${t('Find a building','Gebäude finden')}</span><span class="tile-sub">${t('Maps & directions','Karten & Anfahrt')}</span></button></div></section><section class="card">${sectionTitle(t("Today's timetable",'Stundenplan heute'),t('Full timetable','Ganzer Stundenplan'),'go-schedule')}<div class="list-grid">${todayClass.length?classList((today.getDay()+6)%7,3):empty('calendar',t('Your schedule starts here','Dein Stundenplan beginnt hier'),t('Add your first class to make this dashboard your own.','Füge deine erste Veranstaltung hinzu.'),action('open-class',ic('plus',14)+' '+t('Add first class','Erste Veranstaltung'),'btn small'))}</div></section></div><aside class="side-column"><div class="card date-card"><span class="eyebrow-card">${t('Today','Heute')} · ${fmtDate(today,{weekday:'long'})}</span><div class="date-number">${today.getDate()}</div><div class="date-month">${fmtDate(today,{month:'long',year:'numeric'})}</div><div class="date-divider"></div><div class="date-foot">${ic('pin',18)} <span>${esc(campus().name)}<br/>${t('Your selected campus','Dein gewählter Campus')}</span></div></div><div class="card slim">${sectionTitle(t('Quick access','Schnellzugriff'),'','')} ${LINKS.slice(0,3).map(l=>`<a class="small-panel-row" href="${l.href}" target="_blank" rel="noopener noreferrer"><span class="small-panel-icon">${ic(l.icon,18)}</span><span class="small-panel-text"><strong>${l.name}</strong><small>${l.description[isDe()?1:0]}</small></span><span class="external">${ic('external',15)}</span></a>`).join('')}</div><div class="card slim">${sectionTitle(t('Upcoming reminders','Bevorstehende Erinnerungen'),'+', 'open-reminder')}${reminderList(2)}</div><div class="quote aside-quote"><strong>${t('A little reminder:','Kleine Erinnerung:')}</strong> ${t('A calm, organized semester starts with one small step.','Ein entspannteres Semester beginnt mit guter Organisation.')}</div></aside></div>`}
+  function schedule(){
+    const beginning=weekStart(), finish=new Date(beginning);finish.setDate(beginning.getDate()+6);
+    const dateLabel=`${fmtDate(beginning,{day:'numeric',month:'short'})} – ${fmtDate(finish,{day:'numeric',month:'short',year:'numeric'})}`;
+    return `<div class="toolbar"><div><h1 class="page-title">${t('My timetable','Mein Stundenplan')}</h1><p class="page-sub">${t('Import your university calendar or plan classes yourself.','Hochschulkalender importieren oder Veranstaltungen selbst eintragen.')}</p></div><div class="toolbar-actions">${action('calendar-dialog',ic('download',16)+' '+t('Import / sync','Import / Sync'),'btn secondary')}${action('open-class',ic('plus',17)+' '+t('Add class','Kurs hinzufügen'),'btn')}</div></div>
+    <div class="sync-panel"><div><span class="small-uppercase">${t('CALENDAR STATUS','KALENDER-STATUS')}</span><div class="sync-title">${data.calendarEvents.length?ic('check',16)+' '+t('Calendar imported','Kalender importiert'):ic('calendar',17)+' '+t('Calendar not connected','Kalender nicht verbunden')}</div><p>${data.calendarEvents.length?`${data.calendarEvents.length} ${t('dated sessions loaded','Termine geladen')} · ${t('Updated','Aktualisiert')} ${esc(data.calendarUpdated?new Date(data.calendarUpdated).toLocaleString(locale()):'—')}`:t('Import an .ics file from your university calendar, or link a compatible public CORS-enabled calendar feed.','Importiere eine .ics-Datei aus deinem Hochschulkalender oder verknüpfe einen CORS-fähigen Kalender-Feed.')}</p></div>${action('calendar-dialog',t('Calendar settings','Kalender verwalten')+' '+ic('arrow',16),'btn outline small')}</div>
+    <div class="week-switcher">${action('week-prev',ic('chevron-left',20),'icon-button','aria-label="Previous week"')}<strong>${esc(dateLabel)}</strong>${action('week-next',ic('chevron-right',20),'icon-button','aria-label="Next week"')}${weekOffset!==0?action('week-now',t('Today','Heute'),'btn outline small'):''}</div>
+    <div class="day-tabs">${DAYS.map((d,i)=>`<button class="day-tab ${dayIndex===i?'active':''}" data-action="day" data-day="${i}" aria-label="${fmtDate(new Date(dayDate(i)+'T12:00:00'),{weekday:'long',day:'numeric',month:'long'})}, ${classesFor(i).length} ${t('sessions','Termine')}"><small>${shortDay(i)}</small><strong>${Number(dayDate(i).slice(8,10))}</strong><span class="day-count">${classesFor(i).length} ${classesFor(i).length===1?t('class','Kurs'):t('classes','Kurse')}</span></button>`).join('')}</div>
+    <div class="card schedule-card"><div class="section-heading"><h2>${fmtDate(new Date(dayDate(dayIndex)+'T12:00:00'),{weekday:'long',day:'numeric',month:'long'})}</h2><span class="chip">${classesFor(dayIndex).length} ${t('sessions','Termine')}</span></div><div class="list-grid">${classList(dayIndex)}</div></div>
+    <div class="info-banner" style="margin-top:20px">${ic('shield',18)}<div>${t('MyCampus is a private HSWT system. This app does not ask for university passwords or claim official MyCampus live access. Imported .ics data is saved on this device only.','MyCampus ist ein geschütztes HSWT-System. Die App fragt keine Hochschulpasswörter ab und behauptet keinen offiziellen Live-Zugriff. Importierte .ics-Daten bleiben auf diesem Gerät.')}</div></div>`;
+  }
+
+  function food(){
+    const venues=CampusServices.VENUES.filter(v=>v.campus===data.campus);
+    const selected=venues.find(v=>v.id===data.selectedVenue)||venues[0];
+    const menuDay=new Date(menuDate+'T12:00:00');
+    const dishes=(menuState.venue===selected.id && menuState.day===menuDate)?menuState.dishes:[];
+    const status=(menuState.venue===selected.id && menuState.day===menuDate)?menuState.status:'loading';
+    const filtered=dishes.filter(d=>data.diet!=='veg'||(d.labels||[]).some(l=>/VEGAN|VEGETARIAN|fleischlos|vegan|vegetar/i.test(l+' '+d.type+' '+d.name)));
+    const fmtPrice=d=>typeof d.price==='number'?new Intl.NumberFormat(locale(),{style:'currency',currency:'EUR'}).format(d.price)+(d.unitPrice?' + '+new Intl.NumberFormat(locale(),{style:'currency',currency:'EUR'}).format(d.unitPrice)+' / '+esc(d.unit||'unit'):''):d.unitPrice?new Intl.NumberFormat(locale(),{style:'currency',currency:'EUR'}).format(d.unitPrice)+' / '+esc(d.unit||'unit'):t('See counter','Am Tresen');
+    return `<div class="toolbar"><div><h1 class="page-title">${t('Eat on campus','Essen am Campus')}</h1><p class="page-sub">${t('Browse published campus menus right here — no need to leave the app.','Veröffentlichte Speisepläne direkt hier in der App – ohne Seitenwechsel.')}</p></div>${action('refresh-menu',ic('refresh',17)+' '+t('Refresh menus','Aktualisieren'),'btn outline')}</div>
+      <div class="venue-strip">${venues.map(v=>`<button class="venue-chip ${selected.id===v.id?'selected':''}" data-action="venue" data-venue="${esc(v.id)}"><span class="venue-icon">${ic(v.kind==='Coffee'||v.kind==='Lounge'?'coffee':'utensils',16)}</span><span><strong>${esc(v.name)}</strong><small>${esc(v.kind)}</small></span>${data.favoriteVenues.includes(v.id)?'<span class="fav-mark">★</span>':''}</button>`).join('')}</div>
+      <div class="food-stage"><section class="card live-menu-card"><div class="menu-head"><div><span class="small-uppercase">${esc(campus().name)} · ${esc(selected.kind)}</span><h2>${esc(selected.name)}</h2><p>${ic('pin',14)} ${esc(selected.address)}</p></div>${action('favorite-venue',data.favoriteVenues.includes(selected.id)?'★':'☆','favorite-btn',`data-venue="${esc(selected.id)}" aria-label="Favorite canteen"`)}</div>
+      <div class="menu-date-picker">${action('menu-prev',ic('chevron-left',19),'icon-button','aria-label="Previous day"')}<div><strong>${fmtDate(menuDay,{weekday:'long',day:'numeric',month:'long'})}</strong><small>${t('Menu date','Speiseplandatum')} · ${action('menu-today',t('Today','Heute'),'small-link')}</small></div>${action('menu-next',ic('chevron-right',19),'icon-button','aria-label="Next day"')}</div><div class="menu-jump"><label for="menu-date-input">${t('Jump to date','Datum wählen')}</label><input id="menu-date-input" type="date" value="${menuDate}" min="2026-01-01" aria-label="${t('Select menu date','Speiseplandatum wählen')}"/></div>
+      <div class="menu-filter">${action('diet-all',t('All dishes','Alle Gerichte'),'filter-chip '+(data.diet!=='veg'?'active':''))}${action('diet-veg',t('Vegetarian / vegan','Vegetarisch / vegan'),'filter-chip '+(data.diet==='veg'?'active':''))}</div>
+      <div id="menu-results" aria-live="polite">${status==='loading'?`<div class="loading-list"><span></span><span></span><span></span></div>`:(status==='live'||status==='cached')?(filtered.length?`<div class="meal-stack">${filtered.map(d=>`<article class="meal-item"><span class="meal-icon">${ic('utensils',17)}</span><div class="meal-body"><small>${esc(d.type||t('Daily special','Tagesgericht'))}</small><strong>${esc(d.name)}</strong>${(d.labels||[]).length?`<div class="meal-labels">${d.labels.slice(0,4).map(l=>`<span>${esc(l.replaceAll('_',' '))}</span>`).join('')}</div>`:''}</div><span class="meal-price">${esc(fmtPrice(d))}</span></article>`).join('')}</div>`:empty('utensils',t('No matching dishes','Keine passenden Gerichte'),t('There are no listed meals for this date, or no dishes match your filter.','Für dieses Datum sind keine Speisen hinterlegt oder der Filter passt nicht.'))):empty('info',status==='offline'?t('Showing available source links','Verfügbare Quellen öffnen'):t('No published menu for this date','Kein veröffentlichter Speiseplan für dieses Datum'),t('This location has no verified daily dishes for the selected date. Try another date or check back later; we never show invented meals.','Für diesen Standort sind an diesem Tag keine bestätigten Speisen verfügbar. Wähle ein anderes Datum oder versuche es später erneut.'))}</div>
+      <div class="menu-footer"><span class="feed-status ${(status==='live'||status==='cached')?'good':''}"><i></i>${status==='live'?t('Published menu','Veröffentlichter Speiseplan'):status==='cached'?t('Previously fetched menu · verify on site','Gespeicherter Speiseplan · vor Ort prüfen'):status==='loading'?t('Checking menus…','Speisepläne werden geladen…'):t('Menu not published','Kein Speiseplan veröffentlicht')}</span><span class="source-meta">${menuState.generatedAt && menuState.day===menuDate?esc(t('Checked','Geprüft')+' '+new Date(menuState.generatedAt).toLocaleString(locale(),{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})):''}</span>${a(selected.official,t('Source / allergens','Quelle / Allergene')+' '+ic('external',14),'small-link')}</div></section>
+      <aside class="food-info"><div class="spotlight"><small>${ic('utensils',15)} ${t('STUDENT DINING','HOCHSCHULGASTRONOMIE')}</small><h2>${t('Good food, good day.','Gut essen, gut lernen.')}</h2><p>${t('Menus come from public third-party feeds when provided. Hours and dishes can change at short notice.','Speisepläne stammen – soweit verfügbar – aus öffentlichen Drittanbieter-Feeds. Gerichte und Zeiten können sich kurzfristig ändern.')}</p></div><div class="card venue-details"><h2>${t('Your selected venue','Dein Standort')}</h2><div class="detail-line">${ic('clock',18)}<span>${esc(selected.hours)}</span></div><div class="detail-line">${ic('pin',18)}<span>${esc(selected.address)}</span></div>${a('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(selected.address),ic('map',15)+' '+t('Directions','Route'),'btn secondary small')}${a(selected.official,ic('external',14)+' '+t('Check operator hours / closures','Öffnungszeiten prüfen'),'btn outline small')}</div></aside></div>`;
+  }
+
+  function mailPage(){return `<div class="mail-page">
+    <div class="toolbar"><div><h1 class="page-title">${t('Student email','Studierenden-E-Mail')}</h1><p class="page-sub">${t('Secure access to your own HSWT inbox. Login happens only on the university-linked Outlook website.','Sicherer Zugang zu deinem HSWT-Postfach. Die Anmeldung erfolgt ausschließlich auf der hochschulverbundenen Outlook-Website.')}</p></div><div class="mail-secure-badge">${ic('shield',16)} ${t('Official sign-in','Offizielle Anmeldung')}</div></div>
+    <div class="mail-layout"><section class="card mail-primary"><div class="mail-hero-mark">${ic('mail',34)}</div><span class="mail-overline">HSWT · OUTLOOK WEB ACCESS</span><h2>${t('Your university inbox, one tap away.','Dein Hochschul-Postfach ist nur einen Klick entfernt.')}</h2><p>${t('Access your university messages and reply in Outlook. On your own device, your browser or password manager may remember your sign-in, subject to HSWT session rules.','Öffne deine Hochschul-E-Mails und antworte in Outlook. Auf deinem eigenen Gerät können Browser oder Passwortmanager die Anmeldung merken, soweit es die HSWT-Sitzungsregeln erlauben.')}</p>
+    <a class="mail-open-btn" href="${MAIL_URL}" target="_blank" rel="noopener noreferrer" aria-label="${t('Open official HSWT webmail in a new tab','Offizielles HSWT Webmail in neuem Tab öffnen')}">${ic('mail',18)} ${t('Open my HSWT inbox','Mein HSWT-Postfach öffnen')} ${ic('external',17)}</a>
+    <div class="mail-provider">${ic('external',15)} <span>xmail.mwn.de/owa/</span><span class="mail-official">${t('Official destination','Offizielles Ziel')}</span></div>
+    <div class="mail-quick-panel"><div class="mail-quick-label"><strong>${t('Quick-open Email tab','E-Mail-Tab direkt öffnen')}</strong><span>${t('When enabled, tapping Email in CampusLeaf opens official webmail immediately in a separate browser page.','Wenn aktiviert, öffnet der E-Mail-Tab direkt das offizielle Webmail in einer separaten Browserseite.')}</span></div><button type="button" class="mail-toggle ${data.mailQuickOpen?'enabled':''}" data-action="toggle-mail-quick-open" role="switch" aria-checked="${data.mailQuickOpen}" aria-label="${t('Quick-open official HSWT inbox','HSWT-Postfach direkt öffnen')}"><span></span></button></div>
+    <div class="mail-quick-note">${ic('info',15)} ${t('This saves only your shortcut preference on this device. It does not save your email address, password, mail or session.','Es wird nur die Verknüpfungs-Einstellung auf diesem Gerät gespeichert. Keine E-Mail-Adresse, kein Passwort, keine Nachrichten und keine Sitzung.')}</div>
+    </section><aside class="mail-side"><div class="card mail-info-card"><h3>${ic('check',18)} ${t('How to stay signed in where allowed','Angemeldet bleiben, soweit möglich')}</h3><ol><li>${t('Tap “Open my HSWT inbox” and sign in on the official Outlook page.','Öffne „Mein HSWT-Postfach“ und melde dich auf der offiziellen Outlook-Seite an.')}</li><li>${t('On your private phone, allow cookies and use iCloud Keychain or Google Password Manager if offered.','Erlaube Cookies auf deinem privaten Smartphone und nutze bei Bedarf den iCloud-Schlüsselbund oder Google Passwortmanager.')}</li><li>${t('If the official sign-in page offers “Stay signed in”, you can choose it on a trusted device.','Falls die offizielle Anmeldung „Angemeldet bleiben“ anbietet, kannst du dies auf einem vertrauenswürdigen Gerät wählen.')}</li><li>${t('Return with the same browser. HSWT may still require another sign-in when its session expires.','Nutze beim nächsten Mal denselben Browser. Nach Ablauf der Sitzung kann die HSWT eine neue Anmeldung verlangen.')}</li></ol></div>
+    <div class="card mail-info-card"><h3>${ic('shield',18)} ${t('Your account stays private','Dein Konto bleibt privat')}</h3><p>${t('CampusLeaf never collects or stores your HSWT password, messages, authentication cookies or tokens. Never use “stay signed in” on a shared or public device.','CampusLeaf erhebt oder speichert weder HSWT-Passwort noch Nachrichten, Anmeldecookies oder Token. Verwende „Angemeldet bleiben“ nicht auf gemeinsam genutzten oder öffentlichen Geräten.')}</p></div></aside></div>
+    <div class="mail-bottom"><div><h3>${t('Need help accessing university email?','Brauchst du Hilfe bei der Hochschul-E-Mail?')}</h3><p>${t('For account access or password recovery, use official HSWT guidance and support. CampusLeaf cannot reset a university password.','Bei Fragen zum Zugang oder zur Passwortwiederherstellung nutze die offizielle HSWT-Hilfe. CampusLeaf kann dein Hochschul-Passwort nicht zurücksetzen.')}</p></div>${a(MAIL_HELP_URL,ic('external',16)+' '+t('HSWT setup guide','HSWT-Anleitung'),'btn outline')}</div>
+    <div class="info-banner mail-boundary">${ic('info',18)}<div>${t('The mailbox is not embedded in CampusLeaf. On iPhone, the link can open Safari and its login state is separate from the installed web app. CampusLeaf cannot bypass the university’s sign-in or session timeout requirements.','Das Postfach ist nicht in CampusLeaf eingebettet. Auf dem iPhone kann Safari geöffnet werden; dessen Anmeldesitzung ist von der installierten Web-App getrennt. CampusLeaf kann die Anmelde- oder Sitzungsregeln der Hochschule nicht umgehen.')}</div></div>
+  </div>`}
+  // An on-device location reading is kept in memory only, never in localStorage.
+  const navigationState = { selected:'', query:'', location:null, status:'idle', error:'' };
+  const officialBuildingsURL = 'https://www.hswt.de/anfahrt/';
+  const directionsURL = (building) => {
+    const params = new URLSearchParams({api:'1',destination:building.address,travelmode:'walking',dir_action:'navigate'});
+    if(navigationState.location){
+      params.set('origin',`${navigationState.location.lat.toFixed(6)},${navigationState.location.lng.toFixed(6)}`);
+    }
+    return `https://www.google.com/maps/dir/?${params.toString()}`;
+  };
+  const buildingMapURL = b => 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(b.address);
+  function openNavigation(b){
+    // The student chooses to share coordinates with the map provider on this click.
+    window.open(directionsURL(b),'_blank','noopener,noreferrer');
+  }
+  function refreshPosition(){
+    if(navigationState.status==='loading')return;
+    navigationState.status='loading';navigationState.error='';render();
+    const success=(coords)=>{
+      const latitude=Number(coords.latitude),longitude=Number(coords.longitude);
+      if(!Number.isFinite(latitude)||!Number.isFinite(longitude)||Math.abs(latitude)>90||Math.abs(longitude)>180)throw Error('Invalid location');
+      navigationState.location={lat:latitude,lng:longitude,accuracy:Number(coords.accuracy)||0,at:Date.now()};
+      navigationState.status='ready';
+      if(screen==='campus')render();
+    };
+    const failure=error=>{
+      navigationState.status='error';
+      navigationState.error=error?.code===1?t('Location permission denied. Open directions without sharing your coordinates.','Standortzugriff verweigert. Route ohne GPS-Koordinaten öffnen.'):t('Location unavailable. You can still open directions in Maps.','Standort nicht verfügbar. Die Route kann trotzdem in Maps geöffnet werden.');
+      if(screen==='campus')render();
+    };
+    const nativeGPS=window.CampusLeafNativeGeo?.getCurrentPosition;
+    if(typeof nativeGPS==='function'){
+      Promise.resolve().then(()=>nativeGPS()).then(pos=>success(pos.coords)).catch(failure);
+    }else if(navigator.geolocation?.getCurrentPosition){
+      navigator.geolocation.getCurrentPosition(pos=>{try{success(pos.coords)}catch(error){failure(error)}},failure,{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+    }else failure(new Error('Unsupported'));
+  }
+  function buildingResultRows(query){
+    const needle=String(query||'').trim().toLocaleLowerCase('de-DE');
+    const buildings=BUILDINGS[data.campus].filter(b=>!needle||(`${b.code} ${b.address}`).toLocaleLowerCase('de-DE').includes(needle));
+    return buildings.length?buildings.map(b=>`<button class="building-result ${navigationState.selected===b.code?'is-selected':''}" type="button" data-action="pick-building" data-building="${esc(b.code)}" aria-pressed="${navigationState.selected===b.code}"><span class="building-code">${esc(b.code)}</span><span class="building-result-address"><strong>${t('Building','Gebäude')} ${esc(b.code)}</strong><small>${esc(b.address)}</small></span>${ic('chevron-right',17)}</button>`).join(''):
+      `<div class="building-empty">${ic('search',21)} ${t('No buildings match your search.','Keine passenden Gebäude gefunden.')}</div>`;
+  }
+  function campusPage(){
+    const buildings=BUILDINGS[data.campus];
+    const chosen=buildings.find(b=>b.code===navigationState.selected)||buildings[0];
+    const mapPreviewURL='https://maps.google.com/maps?q='+encodeURIComponent(chosen.address)+'&output=embed';
+    const hasGPS=!!navigationState.location;
+    const note=chosen.code==='A4'||chosen.code==='A6'||(data.campus==='triesdorf'&&(chosen.code==='C'||chosen.code==='E'));
+    return `<section class="building-navigator">
+      <div class="toolbar building-toolbar"><div><h1 class="page-title">${t('Find a campus building','Campusgebäude finden')}</h1><p class="page-sub">${t('Verified HSWT street addresses with walking directions from your location.','Offizielle HSWT-Adressen mit Fußwegen ab deinem Standort.')}</p></div>${a(officialBuildingsURL,ic('external',15)+' '+t('HSWT official maps','Offizielle HSWT-Lagepläne'),'btn outline small')}</div>
+      <div class="campus-location-strip"><span class="location-status-icon">${ic('pin',19)}</span><div class="location-status-copy"><strong>${hasGPS?t('Your location is ready','Dein Standort ist verfügbar'):navigationState.status==='loading'?t('Finding your location…','Standort wird ermittelt…'):t('Navigate from your current location','Route ab deinem aktuellen Standort')}</strong><small>${hasGPS?t('Approximate GPS accuracy:','Ungefähre GPS-Genauigkeit:')+' '+Math.round(navigationState.location.accuracy)+' m · '+t('Stored only while the app is open','Nur während der App-Nutzung gespeichert'):navigationState.status==='error'?esc(navigationState.error):t('Optional. Your location is requested only when you tap below.','Optional. Standortzugriff nur nach deinem Klick.')}</small></div>${action('locate-me',ic('pin',16)+' '+(hasGPS?t('Refresh GPS','GPS aktualisieren'):t('Use my location','Meinen Standort nutzen')),'btn secondary small',navigationState.status==='loading'?'disabled aria-busy="true"':'')}</div>
+      <div class="navigator-campus-choice" role="group" aria-label="Campus">${Object.entries(CAMPUSES).map(([key,c])=>action('building-campus',`${esc(c.name)} <span class="campus-count">${BUILDINGS[key].length}</span>`,'campus-choice '+(data.campus===key?'active':''),`data-campus="${key}" aria-pressed="${data.campus===key}"`)).join('')}</div>
+      <div class="building-layout"><section class="building-list-panel"><label class="building-search-label" for="building-search">${t('Find building or street','Gebäude oder Straße suchen')}</label><input class="building-search" id="building-search" type="search" placeholder="${t('Try A1, C4, Am Hofgarten…','z. B. A1, C4, Am Hofgarten…')}" value="${esc(navigationState.query)}" maxlength="80" autocomplete="off"/><div class="building-list-head">${buildings.length} ${t('HSWT addresses','HSWT-Gebäudeadressen')} <span>${t('Select one','Gebäude auswählen')}</span></div><div class="building-results" id="building-results">${buildingResultRows(navigationState.query)}</div></section>
+      <section class="building-detail" aria-label="${t('Building detail','Gebäudedetails')}"><div class="building-detail-top"><span class="building-detail-tag">${t('Selected building','Ausgewähltes Gebäude')}</span><strong>${t('Building','Gebäude')} ${esc(chosen.code)}</strong><p>${ic('pin',15)} ${esc(chosen.address)}</p></div><div class="building-map-frame"><iframe title="${t('Map near HSWT building','Karte nahe HSWT-Gebäude')} ${esc(chosen.code)}" src="${esc(mapPreviewURL)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe></div><div class="building-actions">${action('building-directions',ic('arrow',15)+' '+t('Walking directions','Fußweg anzeigen'),'btn',`data-building="${esc(chosen.code)}"`)}${a(buildingMapURL(chosen),ic('map',15)+' '+t('View on map','Auf Karte ansehen'),'btn outline')}${a(officialBuildingsURL,ic('external',15)+' '+t('Official plan','Offizieller Lageplan'),'btn secondary')}</div>${note?`<p class="building-precision-warning">${ic('info',15)} ${t('This address is shared by several buildings. Check the official campus plan for the right entrance.','Mehrere Gebäude teilen diese Adresse. Den korrekten Eingang bitte im offiziellen Lageplan prüfen.')}</p>`:''}<p class="building-accuracy-note">${t('Directions use the published street address, not a verified entrance or indoor room pin. Google Maps may open externally.','Die Route verwendet die veröffentlichte Straßenadresse, keinen geprüften Eingang oder Raumstandort. Google Maps kann extern geöffnet werden.')}</p></section></div>
+      <div class="info-banner building-privacy">${ic('shield',17)}<div>${t('CampusLeaf does not upload or save your GPS location. When you open Google Maps, that provider may process your coordinates for directions. The map preview uses Google Maps.','CampusLeaf speichert oder überträgt deinen GPS-Standort nicht. Bei der Navigation kann Google Maps deine Koordinaten verarbeiten. Die Kartenansicht nutzt Google Maps.')}</div></div>
+    </section>`;
+  }
+
+  function more(){return `<h1 class="page-title">${t('Your campus toolkit','Deine Campus-Tools')}</h1><p class="page-sub">${t('Everything you use often, in one easy place.','Alles Wichtige an einem Ort.')}</p><div class="settings-grid"><section class="card"><h2 class="panel-heading">${t('University services','Hochschulservices')}</h2><p class="page-sub" style="margin:7px 0 19px">${t('Links open the official university websites.','Links öffnen die offiziellen Hochschulseiten.')}</p>${LINKS.map(l=>`<a class="resource-row" href="${esc(l.href)}" target="_blank" rel="noopener noreferrer"><div class="resource-icon">${ic(l.icon,20)}</div><div class="resource-content"><strong>${l.name}</strong><small>${l.description[isDe()?1:0]}</small></div>${ic('external',16)}</a>`).join('')}</section><section style="display:grid;gap:19px;align-content:start"><div class="card"><div class="section-heading"><h2>${t('My reminders','Meine Erinnerungen')}</h2>${action('open-reminder',ic('plus',17),'icon-button','aria-label="Add reminder"')}</div>${reminderList(5)}</div><div class="card"><h2 class="panel-heading">${t('Preferences','Einstellungen')}</h2><div class="setting-row"><div><strong>${t('Campus','Campus')}</strong><small>${t('Choose your main campus','Wähle deinen Standort')}</small></div>${action('campus-modal',esc(campus().name)+' '+ic('chevron',14),'btn outline small')}</div><div class="setting-row"><div><strong>${t('Language','Sprache')}</strong><small>${t('App interface','App-Oberfläche')}</small></div><div class="setting-options">${action('set-lang','EN','setting-options-btn '+(data.lang==='en'?'active':''),'data-lang="en"')}${action('set-lang','DE','setting-options-btn '+(data.lang==='de'?'active':''),'data-lang="de"')}</div></div><div class="setting-row"><div><strong>${t('Appearance','Darstellung')}</strong><small>${t('Light or dark theme','Helles oder dunkles Design')}</small></div><div class="setting-options theme-choices">${action('set-theme',ic('moon',15)+' '+t('Dark','Dunkel'),'theme-choice '+(data.theme==='dark'?'active':''),'data-theme="dark" aria-pressed="'+(data.theme==='dark')+'"')}${action('set-theme',ic('sun',15)+' '+t('Light','Hell'),'theme-choice '+(data.theme==='light'?'active':''),'data-theme="light" aria-pressed="'+(data.theme==='light')+'"')}</div></div></div><div class="card"><h2 class="panel-heading">${t('Your data','Deine Daten')}</h2><p class="page-sub" style="margin:9px 0 16px">${t('Your personal schedule and reminders stay in this browser. No account or server.','Stundenplan und Erinnerungen bleiben in diesem Browser. Kein Konto und kein Server.')}</p><div style="display:flex;gap:9px;flex-wrap:wrap">${action('import-backup',ic('download',15)+' '+t('Import backup','Sicherung importieren'),'btn secondary small')}${action('export',ic('download',15)+' '+t('Export backup','Sicherung exportieren'),'btn secondary small')}${action('reset',ic('trash',15)+' '+t('Delete local data','Lokale Daten löschen'),'btn danger small')}</div></div><div class="card"><h2 class="panel-heading">${t('Calendar connection','Kalenderverbindung')}</h2><p class="page-sub">${t('Import .ics or connect a supported calendar URL.','ICS importieren oder kompatible Kalender-URL nutzen.')}</p>${action('calendar-dialog',ic('calendar',16)+' '+t('Manage timetable','Stundenplan verwalten'),'btn secondary small')}</div><div class="card"><h2 class="panel-heading">${t('Install on your phone','Auf dem Handy installieren')}</h2>${action('install-help',ic('download',16)+' '+t('Installation instructions','Installationsanleitung'),'btn outline small')}</div></section></div><div class="privacy-row">CampusLeaf · ${t('Independent, unofficial HSWT student companion. No university endorsement is implied.','Unabhängige, inoffizielle HSWT-Studierenden-App. Keine institutionelle Unterstützung wird behauptet.')}</div>`}
+  function render(){if(document.documentElement.dataset) document.documentElement.dataset.firstTheme=data.theme;document.documentElement.lang=data.lang;document.body.classList.toggle('dark',data.theme==='dark');const pg={home,schedule,food,mail:mailPage,campus:campusPage,more}[screen]();$('#app').innerHTML=`<div class="app-shell">${sidebar()}<main class="content">${mobileTop()}${topbar()}<div class="page" id="main-content">${pg}</div></main>${mobileTabs()}</div>`;}
+  function dialogShell(title,subtitle,content){closeDialog();const back=document.createElement('div');back.className='modal-backdrop';back.id='dialog-backdrop';back.innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-head"><div><div class="modal-title">${title}</div><div class="modal-sub">${subtitle}</div></div>${action('close-modal',ic('close',20),'icon-button','aria-label="Close"')}</div>${content}</div>`;document.body.appendChild(back);dialog=back;const field=back.querySelector('input,select,button');field?.focus()}
+  function closeDialog(){document.querySelector('#dialog-backdrop')?.remove();dialog=null}
+  function newClass(){dialogShell(t('Add a class','Veranstaltung hinzufügen'),t('Stored only in this browser','Nur in diesem Browser gespeichert'),`<form id="class-form"><div class="form-grid"><div class="field full"><label for="course-title">${t('Course name','Name der Veranstaltung')} *</label><input id="course-title" name="title" required maxlength="90" placeholder="${t('e.g. Applied Mathematics','z. B. Angewandte Mathematik')}" autofocus/></div><div class="field"><label for="course-day">${t('Weekday','Wochentag')}</label><select id="course-day" name="day">${DAYS.map((d,i)=>`<option value="${i}" ${dayIndex===i?'selected':''}>${t(['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][i],['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'][i])}</option>`).join('')}</select></div><div class="field"><label for="course-room">${t('Room / building','Raum / Gebäude')}</label><input id="course-room" name="room" maxlength="60" placeholder="e.g. A4.201"/></div><div class="field"><label for="course-start">${t('Starts','Beginn')} *</label><input id="course-start" name="start" type="time" value="09:00" required/></div><div class="field"><label for="course-end">${t('Ends','Ende')} *</label><input id="course-end" name="end" type="time" value="10:30" required/></div><div class="field full"><label for="course-teacher">${t('Instructor / notes','Dozent:in / Notizen')}</label><input id="course-teacher" name="teacher" maxlength="90" placeholder="${t('Optional','Optional')}"/></div></div><div class="form-actions">${action('close-modal',t('Cancel','Abbrechen'),'btn outline')}<button class="btn" type="submit">${ic('check',16)} ${t('Save class','Speichern')}</button></div></form>`)}
+  function newReminder(){dialogShell(t('Add reminder','Erinnerung hinzufügen'),t('Personal deadlines, exams and to-dos','Deine Fristen, Prüfungen und To-dos'),`<form id="reminder-form"><div class="form-grid"><div class="field full"><label for="reminder-title">${t('Reminder title','Titel')} *</label><input id="reminder-title" name="title" required maxlength="100" placeholder="${t('e.g. Submit project report','z. B. Projektbericht abgeben')}"/></div><div class="field"><label for="reminder-date">${t('Date','Datum')} *</label><input id="reminder-date" name="date" type="date" required value="${dateISO(new Date())}"/></div><div class="field"><label for="reminder-time">${t('Time','Uhrzeit')}</label><input id="reminder-time" name="time" type="time" value="12:00"/></div></div><div class="form-actions">${action('close-modal',t('Cancel','Abbrechen'),'btn outline')}<button class="btn" type="submit">${ic('check',16)} ${t('Save reminder','Speichern')}</button></div></form>`)}
+  function campusDialog(){dialogShell(t('Choose your campus','Campus auswählen'),t('This adjusts campus information throughout the app.','Damit werden campusbezogene Infos angepasst.'),Object.entries(CAMPUSES).map(([key,c])=>action('select-campus',`${ic('pin',18)} <span style="flex:1;text-align:left"><strong>${esc(c.name)}</strong><small style="display:block;margin-top:4px;color:#8DA295">${esc(c.place)}</small></span>${data.campus===key?ic('check',19):ic('arrow',19)}`,'resource-row',`data-campus="${key}" style="width:100%;text-align:left"`)).join(''))}
+  function searchResults(q){q=q.toLowerCase().trim(); const matches=LINKS.filter(l=>(l.name+' '+l.description.join(' ')).toLowerCase().includes(q));return matches.length?matches.map(l=>`<a class="resource-row" href="${esc(l.href)}" target="_blank" rel="noopener noreferrer"><span class="resource-icon">${ic(l.icon,20)}</span><span class="resource-content"><strong>${esc(l.name)}</strong><small>${l.description[isDe()?1:0]}</small></span>${ic('external',16)}</a>`).join(''):empty('search',t('No matching links','Keine passenden Links'),t('Try Moodle, MyCampus, library, or support.','Versuche Moodle, MyCampus, Bibliothek oder Beratung.'))}
+  function searchDialog(){dialogShell(t('Quick search','Schnellsuche'),t('Find official HSWT service links','Offizielle HSWT-Services finden'),`<div class="search-head">${ic('search',20)}<input id="search-query" class="search-input" placeholder="${t('Search Moodle, MyCampus, library...','Moodle, MyCampus, Bibliothek suchen...')}" autocomplete="off"/></div><div id="search-results">${searchResults('')}</div>`);$('#search-query')?.focus()}
+  function settingsDialog(){dialogShell(t('Quick settings','Schnelleinstellungen'),t('Make CampusLeaf yours','CampusLeaf anpassen'),`<div class="setting-row"><div><strong>${t('Preferred language','Sprache')}</strong><small>English / Deutsch</small></div><div class="setting-options">${action('set-lang','EN',data.lang==='en'?'active':'','data-lang="en"')}${action('set-lang','DE',data.lang==='de'?'active':'','data-lang="de"')}</div></div><div class="setting-row"><div><strong>${t('Campus','Campus')}</strong><small>${esc(campus().name)}</small></div>${action('campus-modal',t('Change','Ändern'),'btn secondary small')}</div><div class="setting-row"><div><strong>${t('Theme','Design')}</strong><small>${data.theme==='dark'?t('Dark','Dunkel'):t('Light','Hell')}</small></div><div class="setting-options theme-choices">${action('set-theme',ic('moon',15)+' '+t('Dark','Dunkel'),'theme-choice '+(data.theme==='dark'?'active':''),'data-theme="dark" aria-pressed="'+(data.theme==='dark')+'"')}${action('set-theme',ic('sun',15)+' '+t('Light','Hell'),'theme-choice '+(data.theme==='light'?'active':''),'data-theme="light" aria-pressed="'+(data.theme==='light')+'"')}</div></div><div class="privacy-row">${t('Personal content is stored locally. This app is not affiliated with HSWT.','Deine persönlichen Inhalte werden lokal gespeichert. Diese App ist nicht mit der HSWT verbunden.')}
+    <div class="feedback-contact">
+      <span class="feedback-contact-label">${t('Issues or suggestions? Contact me:','Probleme oder Vorschläge? Schreib mir:')}</span>
+      <a class="feedback-email" href="mailto:rokibul.islam@student.hswt.de?subject=CampusLeaf%20Feedback" aria-label="${t('Send CampusLeaf feedback by email','CampusLeaf-Feedback per E-Mail senden')}">rokibul.islam@student.hswt.de</a>
+    </div>
+  </div>`)}
+
+  function calendarDialog(){dialogShell(t('Calendar import & sync','Kalender importieren & synchronisieren'),t('A safer path to your personal timetable','Dein persönlicher Stundenplan ohne Passwörter'),`<div class="calendar-dialog"><div class="calendar-option"><div class="option-number">01</div><div><strong>${t('Import an .ics file','Eine .ics-Datei importieren')}</strong><p>${t('Export your timetable from your university calendar if supported. You can also export .ics from Google Calendar or Apple Calendar. Import replaces previous imported calendar entries, but preserves manually added classes.','Exportiere den Stundenplan als .ics-Datei, falls verfügbar. Auch Google/Apple-Kalender unterstützen .ics. Ein Import ersetzt frühere Kalendertermine, nicht deine manuellen Kurse.')}</p><label class="btn file-pick" for="calendar-file">${ic('download',16)} ${t('Choose .ics file','ICS-Datei auswählen')}</label><input id="calendar-file" type="file" accept=".ics,text/calendar" hidden /></div></div>
+    <div class="calendar-option"><div class="option-number">02</div><div><strong>${t('Try a live calendar URL','Live-Kalender-URL versuchen')}</strong><p>${t('Only direct HTTPS iCalendar feeds that permit cross-origin browser requests will work on GitHub Pages. Password-protected MyCampus pages cannot be synced this way.','Nur direkte HTTPS-iCalendar-Feeds mit CORS-Unterstützung funktionieren auf GitHub Pages. Geschützte MyCampus-Seiten lassen sich so nicht synchronisieren.')}</p><form id="calendar-feed-form"><input name="url" type="url" maxlength="2000" required placeholder="https://example.org/my-calendar.ics" value="${esc(data.feedUrl||'')}" autocomplete="off"/><label class="checkline"><input type="checkbox" name="remember" ${data.feedUrl?'checked':''}/> ${t('Save this private calendar link only on this device','Privaten Kalenderlink nur auf diesem Gerät speichern')}</label><button class="btn secondary small" type="submit">${ic('refresh',15)} ${t('Sync now','Jetzt synchronisieren')}</button></form></div></div>
+    ${data.calendarEvents.length?`<div class="calendar-stats">${data.calendarEvents.length} ${t('calendar sessions stored on this device','Kalendertermine auf diesem Gerät gespeichert')} ${action('clear-calendar',t('Remove imported data','Importdaten löschen'),'btn danger small')}</div>`:''}
+    <div class="info-banner">${ic('shield',17)}<div>${t('Never paste university passwords here. A private feed URL can itself act as a secret. A saved URL stays in local browser storage, so avoid shared devices.','Keine Hochschulpasswörter eingeben. Auch ein privater Feed-Link kann vertraulich sein. Gespeicherte Links bleiben lokal im Browser – keine gemeinsam genutzten Geräte verwenden.')}</div></div></div>`)}
+  function installHelp(){dialogShell(t('Install CampusLeaf','CampusLeaf installieren'),t('No App Store or Play Store account required','Keine App-Store-Konten nötig'),`<div class="calendar-option"><div class="option-number">iOS</div><div><strong>Safari · iPhone</strong><p>${t('Open your HTTPS GitHub Pages URL in Safari → Share → Add to Home Screen → Add. The app opens from your home-screen icon.','HTTPS-GitHub-Pages-URL in Safari öffnen → Teilen → Zum Home-Bildschirm → Hinzufügen.')}</p></div></div><div class="calendar-option"><div class="option-number">Android</div><div><strong>Chrome · Android</strong><p>${t('Open your HTTPS site in Chrome → menu (⋮) → Install app / Add to Home screen.','HTTPS-Seite in Chrome öffnen → Menü (⋮) → App installieren / Zum Startbildschirm hinzufügen.')}</p></div></div><div class="info-banner">${ic('info',18)}<div>${t('For installation, use the published HTTPS site — not a local file. This is an installable PWA and does not provide APK or IPA files.','Zur Installation benötigst du die veröffentlichte HTTPS-Seite. Es handelt sich um eine PWA, nicht um APK- oder IPA-Dateien.')}</div></div>`)}
+  async function importCalendar(text){try{const events=CampusServices.parseICS(text);data.calendarEvents=events;data.calendarUpdated=new Date().toISOString();save();closeDialog();screen='schedule';weekOffset=0;dayIndex=(new Date().getDay()+6)%7;render();flash(events.length+t(' classes imported',' Termine importiert'));}catch(e){flash(t('Import failed: ','Import fehlgeschlagen: ')+e.message)}}
+  async function syncCalendar(url,remember){if(feedSyncing)return;feedSyncing=true;flash(t('Checking calendar feed…','Kalender-Feed wird geprüft…'));
+    try{if(!/^https:\/\//i.test(url))throw new Error(t('Use an HTTPS .ics feed.','Nur HTTPS-ICS-Feeds verwenden.'));
+      const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12000);let response;
+      try{response=await fetch(url,{signal:controller.signal,cache:'no-store',credentials:'omit'});}finally{clearTimeout(timeout)}
+      if(!response.ok)throw new Error('HTTP '+response.status);const text=await response.text();if(!text.includes('BEGIN:VCALENDAR'))throw new Error(t('URL did not return an iCalendar file','URL enthält keine iCalendar-Datei'));
+      data.feedUrl=remember?url:'';await importCalendar(text);
+    }catch(e){flash(t('Cannot sync this feed (CORS/login/network). Please export an .ics file.','Feed nicht abrufbar (CORS/Login/Netzwerk). Bitte eine .ics-Datei importieren.'));console.warn('Calendar sync error',e)}finally{feedSyncing=false}}
+  function refreshMenu(force=false){if(screen!=='food')return;const venues=CampusServices.VENUES.filter(v=>v.campus===data.campus),v=venues.find(x=>x.id===data.selectedVenue)||venues[0];
+    const key=`campusleaf.menu.${v.id}.${menuDate}`,saved=(()=>{try{return JSON.parse(sessionStorage.getItem(key)||'null')}catch{return null}})();
+    if(!force && saved && Date.now()-saved.ts<1000*60*15){menuState={...saved.data,venue:v.id,day:menuDate};render();return}
+    const id=++menuRequest;menuState={status:'loading',dishes:[],venue:v.id,day:menuDate};render();
+    CampusServices.loadMenu(v,menuDate).then(result=>{if(id!==menuRequest)return;menuState={...result,venue:v.id,day:menuDate};if(result.status==='live'||result.status==='cached'){try{sessionStorage.setItem(key,JSON.stringify({ts:Date.now(),data:result}))}catch(e){}}render()}).catch(err=>{if(id!==menuRequest)return;console.warn('Menu source error',err);menuState={status:'offline',dishes:[],venue:v.id,day:menuDate};render()});
+  }
+  function shiftedMenuDate(delta){const d=new Date(menuDate+'T12:00:00');d.setDate(d.getDate()+delta);menuDate=CampusServices.dateKey(d);refreshMenu()}
+  document.addEventListener('click',e=>{
+    if(e.target.id==='dialog-backdrop'){closeDialog();return}
+    const b=e.target.closest('[data-action]');if(!b)return;
+    const act=b.dataset.action;
+    if(act==='nav'||act==='go-schedule'||act==='go-more'){
+      const directlyOpenMail=act==='nav' && b.dataset.screen==='mail' && data.mailQuickOpen;
+      // Open only during the student's own tap; do not auto-login or touch Outlook cookies.
+      // Popup blockers may reject the external tab; the visible inbox link remains available.
+      if(directlyOpenMail && typeof window.open==='function')window.open(MAIL_URL,'_blank','noopener,noreferrer');
+      screen=act==='nav'?b.dataset.screen:act==='go-schedule'?'schedule':'more';render();if(screen==='food')refreshMenu();window.scrollTo({top:0,behavior:'instant'});return}
+    if(act==='building-campus'){if(CAMPUSES[b.dataset.campus]){data.campus=b.dataset.campus;data.selectedVenue='';navigationState.selected='';navigationState.query='';save();render()}return}
+    if(act==='pick-building'){const building=BUILDINGS[data.campus].find(item=>item.code===b.dataset.building);if(building){navigationState.selected=building.code;render()}return}
+    if(act==='locate-me'){refreshPosition();return}
+    if(act==='building-directions'){const building=BUILDINGS[data.campus].find(item=>item.code===b.dataset.building);if(building)openNavigation(building);return}
+    if(act==='toggle-mail-quick-open'){data.mailQuickOpen=!data.mailQuickOpen;save();render();flash(data.mailQuickOpen?t('Quick-open enabled','Direktöffnung aktiviert'):t('Quick-open disabled','Direktöffnung deaktiviert'));return}
+    if(act==='calendar-dialog'){calendarDialog();return}
+    if(act==='install-help'){installHelp();return}
+    if(act==='week-prev'||act==='week-next'||act==='week-now'){weekOffset=act==='week-now'?0:Math.max(-30,Math.min(60,weekOffset+(act==='week-prev'?-1:1)));render();return}
+    if(act==='venue'){data.selectedVenue=b.dataset.venue;save();refreshMenu();return}
+    if(act==='refresh-menu'){refreshMenu(true);return}
+    if(act==='menu-prev'||act==='menu-next'){shiftedMenuDate(act==='menu-prev'?-1:1);return}
+    if(act==='menu-today'){menuDate=CampusServices.dateKey(new Date());refreshMenu();return}
+    if(act==='diet-all'||act==='diet-veg'){data.diet=act==='diet-veg'?'veg':'all';save();render();return}
+    if(act==='favorite-venue'){const v=b.dataset.venue;data.favoriteVenues=data.favoriteVenues.includes(v)?data.favoriteVenues.filter(x=>x!==v):[...data.favoriteVenues,v];save();render();return}
+    if(act==='clear-calendar'){if(confirm(t('Remove all imported calendar entries?','Alle importierten Kalendertermine löschen?'))){data.calendarEvents=[];data.calendarUpdated='';data.feedUrl='';save();closeDialog();render()}return}
+    if(act==='import-backup'){$('#backup-file-picker')?.remove();const f=document.createElement('input');f.type='file';f.accept='application/json,.json';f.id='backup-file-picker';f.hidden=true;f.onchange=async()=>{try{const obj=JSON.parse(await f.files[0].text());if(obj.app!=='CampusLeaf'||!obj.data||!Array.isArray(obj.data.classes)||!Array.isArray(obj.data.reminders))throw Error('Not a CampusLeaf backup');if(!confirm(t('Replace current local data with backup?','Aktuelle lokale Daten durch Sicherung ersetzen?')))return;data={...data,...obj.data,feedUrl:'',calendarEvents:Array.isArray(obj.data.calendarEvents)?obj.data.calendarEvents.slice(0,3500):[],classes:obj.data.classes.slice(0,500),reminders:obj.data.reminders.slice(0,500)};save();render();flash(t('Backup restored','Sicherung wiederhergestellt'));}catch(err){flash(t('Invalid backup file','Ungültige Sicherung'))}};document.body.appendChild(f);f.click();return}
+    if(act==='day'){dayIndex=Number(b.dataset.day);render();return}
+    if(act==='open-class'){newClass();return}
+    if(act==='open-reminder'){newReminder();return}
+    if(act==='campus-modal'){campusDialog();return}
+    if(act==='select-campus'){navigationState.selected='';navigationState.query='';data.campus=b.dataset.campus;data.selectedVenue='';menuState={status:'idle',dishes:[]};save();closeDialog();render();if(screen==='food')refreshMenu();flash(t('Campus updated','Campus aktualisiert'));return}
+    if(act==='settings'){settingsDialog();return}
+    if(act==='search'){searchDialog();return}
+    if(act==='close-modal'){closeDialog();return}
+    if(act==='set-lang'){data.lang=b.dataset.lang;save();closeDialog();render();flash(data.lang==='de'?'Sprache aktualisiert':'Language updated');return}
+    if(act==='set-theme' && ['dark','light'].includes(b.dataset.theme)){data.theme=b.dataset.theme;save();closeDialog();render();return}
+    if(act==='toggle-theme'){data.theme=data.theme==='dark'?'light':'dark';save();closeDialog();render();return}
+    if(act==='delete-class'){if(confirm(t('Remove this class?','Diese Veranstaltung löschen?'))){data.classes=data.classes.filter(c=>String(c.id)!==String(b.dataset.id));save();render();flash(t('Class removed','Veranstaltung gelöscht'))}return}
+    if(act==='delete-reminder'){if(confirm(t('Remove this reminder?','Diese Erinnerung löschen?'))){data.reminders=data.reminders.filter(r=>String(r.id)!==String(b.dataset.id));save();render();flash(t('Reminder removed','Erinnerung gelöscht'))}return}
+    if(act==='export'){
+      const blob=new Blob([JSON.stringify({app:'CampusLeaf',version:1,exportedAt:new Date().toISOString(),data:{...data,feedUrl:''}},null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=`campusleaf-backup-${dateISO(new Date())}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);flash(t('Backup downloaded','Sicherung heruntergeladen'));return;
+    }
+    if(act==='reset'&&confirm(t('Delete all your local classes, reminders and preferences? This cannot be undone.','Alle lokalen Veranstaltungen, Erinnerungen und Einstellungen löschen? Dies kann nicht rückgängig gemacht werden.'))){localStorage.removeItem(KEY);data={campus:'weihenstephan',lang:'en',theme:'dark',classes:[],reminders:[],calendarEvents:[],calendarUpdated:'',feedUrl:'',selectedVenue:'',favoriteVenues:[],diet:'all',mailQuickOpen:false};screen='home';render();flash('Local data deleted');return}
+  });
+  document.addEventListener('submit',e=>{
+    if(e.target.id==='calendar-feed-form'){e.preventDefault();const f=new FormData(e.target);syncCalendar(String(f.get('url')||'').trim(),f.has('remember'));return}
+    if(e.target.id==='class-form'){
+      e.preventDefault();const f=new FormData(e.target);const title=String(f.get('title')||'').trim(),start=String(f.get('start')||''),end=String(f.get('end')||'');
+      if(!title){flash(t('Enter a course name','Bitte Namen eingeben'));return}
+      if(end<=start){flash(t('End time must be after start time','Das Ende muss nach dem Beginn liegen'));return}
+      if(data.classes.length>=500){flash(t('Maximum 500 classes','Maximal 500 Veranstaltungen'));return}
+      dayIndex=Number(f.get('day'));data.classes.push({id:crypto.randomUUID?.() || String(Date.now()),day:dayIndex,title:title.slice(0,90),room:String(f.get('room')||'').slice(0,60),start,end,teacher:String(f.get('teacher')||'').slice(0,90)});
+      save();closeDialog();render();flash(t('Class saved','Veranstaltung gespeichert'));
+    }
+    if(e.target.id==='reminder-form'){
+      e.preventDefault();const f=new FormData(e.target),title=String(f.get('title')||'').trim(),date=String(f.get('date')||'');
+      if(!title||!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
+      if(data.reminders.length>=500){flash(t('Maximum 500 reminders','Maximal 500 Erinnerungen'));return}
+      data.reminders.push({id:crypto.randomUUID?.()||String(Date.now()),title:title.slice(0,100),date,time:String(f.get('time')||'12:00')});save();closeDialog();render();flash(t('Reminder saved','Erinnerung gespeichert'));
+    }
+  });
+  document.addEventListener('change',async e=>{if(e.target.id==='menu-date-input'){const v=e.target.value;if(/^\d{4}-\d{2}-\d{2}$/.test(v)){menuDate=v;refreshMenu()}return}if(e.target.id==='calendar-file'&&e.target.files?.[0]){try{const file=e.target.files[0];if(file.size>1500000)throw new Error('File too large');await importCalendar(await file.text())}catch(err){flash(t('Could not read calendar file','Kalenderdatei konnte nicht gelesen werden'))}}});
+  document.addEventListener('input',e=>{if(e.target.id==='search-query')$('#search-results').innerHTML=searchResults(String(e.target.value).slice(0,100));if(e.target.id==='building-search'){navigationState.query=String(e.target.value).slice(0,80);const list=$('#building-results');if(list)list.innerHTML=buildingResultRows(navigationState.query)}});
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&dialog){closeDialog();return}
+    if(e.key==='/'&&!dialog&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();searchDialog()}
+  });
+  render();
+  if(data.feedUrl)syncCalendar(data.feedUrl,true);
+  if('serviceWorker' in navigator && window.location.protocol !== 'file:')window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+})();
