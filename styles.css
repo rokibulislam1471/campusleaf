@@ -144,3 +144,41 @@ body.dark .campus-choice.active{background:#52856B;color:#fff}body.dark .buildin
 @media(max-width:1050px){.building-layout{grid-template-columns:1fr}.building-results{max-height:290px}.building-map-frame{height:310px}}
 @media(max-width:760px){.campus-location-strip{flex-wrap:wrap;padding:13px}.campus-location-strip .btn{width:100%;justify-content:center}.navigator-campus-choice{display:grid;grid-template-columns:1fr 1fr}.campus-choice{justify-content:center;padding:10px 5px}.building-list-panel,.building-detail{padding:13px}.building-results{max-height:260px}.building-map-frame{height:240px}.building-actions{display:grid;grid-template-columns:1fr 1fr}.building-actions .btn{font-size:11px;padding:10px 8px}.building-actions .btn:first-child{grid-column:1/-1}}
 @media(max-width:380px){.campus-choice{font-size:11px}.building-actions{grid-template-columns:1fr}.building-actions .btn:first-child{grid-column:auto}}
+
+/* CampusLeaf accessibility patch — theme-aware color contrast (2026-10-19)
+   The dashboard shortcuts are <button> elements. Without an explicit color,
+   Android WebView uses the platform's dark ButtonText default (near black)
+   even while the button's background is dark green.
+   These overrides keep light mode readable and make dark mode legible. */
+.quick-tile {
+  color: var(--text);
+}
+.quick-tile .tile-title {
+  color: inherit;
+}
+.quick-tile .tile-sub {
+  color: #5D7164;
+}
+body.dark .quick-tile {
+  color: #E9F4E9;
+}
+body.dark .quick-tile .tile-title {
+  color: #E9F4E9;
+}
+body.dark .quick-tile .tile-sub {
+  color: #BFD3C4;
+}
+/* Keep the mint-on-pale hero action legible when --green becomes mint in dark mode. */
+body.dark .hero .white-button {
+  color: #174633;
+}
+/* Secondary actions also have pale backgrounds and need dark foreground text. */
+body.dark .btn.secondary {
+  color: #174633;
+}
+/* Ensure selected bottom navigation stays readable in the native dark theme. */
+@media (max-width: 760px) {
+  body.dark .mobile-tab.active {
+    color: #BCEDC4;
+  }
+}
