@@ -1,4 +1,4 @@
-const CACHE = 'campusleaf-v5';
+const CACHE = 'campusleaf-v6-leaf-dark';
 const FILES = ['./','./index.html','./styles.css','./app.js','./data-services.js','./manifest.webmanifest','./assets/icon-192.png','./assets/icon-512.png','./assets/favicon.svg'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES)));

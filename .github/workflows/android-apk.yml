@@ -149,6 +149,34 @@ jobs:
             }
           }
           JAVA
+      - name: Apply CampusLeaf leaf icon and splash resources
+        run: |
+          set -e
+          RES=android/app/src/main/res
+          for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            cp assets/android-brand/mipmap-"$density"/ic_launcher.png "$RES/mipmap-$density/ic_launcher.png"
+            cp assets/android-brand/mipmap-"$density"/ic_launcher_round.png "$RES/mipmap-$density/ic_launcher_round.png"
+            cp assets/android-brand/mipmap-"$density"/ic_launcher_foreground.png "$RES/mipmap-$density/ic_launcher_foreground.png"
+          done
+          mkdir -p "$RES/mipmap-anydpi-v26" "$RES/drawable-nodpi"
+          cat > "$RES/mipmap-anydpi-v26/ic_launcher.xml" <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+            <background android:drawable="@android:color/transparent" />
+            <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+          </adaptive-icon>
+          XML
+          cp "$RES/mipmap-anydpi-v26/ic_launcher.xml" "$RES/mipmap-anydpi-v26/ic_launcher_round.xml"
+          cp assets/android-brand/splash.png "$RES/drawable-nodpi/campusleaf_splash.png"
+          python3 <<'PYTHON'
+          from pathlib import Path
+          p=Path('android/app/src/main/res/values/styles.xml')
+          if p.exists():
+              text=p.read_text()
+              if '@drawable/splash' in text:
+                  text=text.replace('@drawable/splash', '@drawable/campusleaf_splash')
+                  p.write_text(text)
+          PYTHON
       - name: Compile APK
         working-directory: android
         run: |

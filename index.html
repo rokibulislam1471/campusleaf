@@ -12,6 +12,13 @@
     <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./assets/icon-192.png" />
     <link rel="stylesheet" href="./styles.css" />
+    <script>
+      try {
+        const saved = JSON.parse(localStorage.getItem('campusleaf.hswt.v1') || '{}');
+        document.documentElement.dataset.firstTheme = saved.theme === 'light' ? 'light' : 'dark';
+      } catch (_) { document.documentElement.dataset.firstTheme = 'dark'; }
+    </script>
+    <style>html[data-first-theme="dark"]{background:#101F1A}html[data-first-theme="dark"] body{background:#101F1A;color:#E9F4E9}</style>
     <title>CampusLeaf — Your HSWT student companion</title>
   </head>
   <body>
