@@ -84,6 +84,7 @@ jobs:
           const fs = require('fs');
           const file = 'www/index.html';
           let html = fs.readFileSync(file, 'utf8');
+          html = html.replace('</head>', '  <script>document.documentElement.classList.add(\"campusleaf-native\");</script>\n</head>');
           html = html.replace('</body>', '  <script src="./native-bridge.js" defer></script>\n</body>');
           fs.writeFileSync(file, html);
           const menuFile = 'www/data-services.js';
@@ -97,6 +98,57 @@ jobs:
           JS
           npx cap add android
           npx cap sync android
+      - name: Apply Android system bar and cutout insets
+        run: |
+          # Android 15+ forces edge-to-edge on newer target SDKs. Rather than
+          # depending on WebView CSS env() support, place the entire WebView
+          # inside the safe area returned by the OS on every device.
+          cat > android/app/src/main/java/de/campusleaf/student/MainActivity.java <<'JAVA'
+          package de.campusleaf.student;
+
+          import android.graphics.Color;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.view.ViewGroup;
+          import androidx.core.graphics.Insets;
+          import androidx.core.view.ViewCompat;
+          import androidx.core.view.WindowCompat;
+          import androidx.core.view.WindowInsetsCompat;
+          import androidx.core.view.WindowInsetsControllerCompat;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+              // Leave physical system bars visible, while avoiding overlaps.
+              WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+              getWindow().getDecorView().setBackgroundColor(Color.rgb(16, 31, 26));
+              WindowInsetsControllerCompat controller =
+                  WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+              controller.setAppearanceLightStatusBars(false);
+              controller.setAppearanceLightNavigationBars(false);
+
+              final View webView = bridge.getWebView();
+              ViewCompat.setOnApplyWindowInsetsListener(webView, (view, windowInsets) -> {
+                Insets bars = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() |
+                    WindowInsetsCompat.Type.displayCutout());
+                Insets keyboard = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+                int bottom = Math.max(bars.bottom, keyboard.bottom);
+                ViewGroup.MarginLayoutParams params =
+                    (ViewGroup.MarginLayoutParams) view.getLayoutParams();
+                if (params.leftMargin != bars.left || params.topMargin != bars.top ||
+                    params.rightMargin != bars.right || params.bottomMargin != bottom) {
+                  params.setMargins(bars.left, bars.top, bars.right, bottom);
+                  view.setLayoutParams(params);
+                }
+                return windowInsets;
+              });
+              ViewCompat.requestApplyInsets(webView);
+            }
+          }
+          JAVA
       - name: Compile APK
         working-directory: android
         run: |
