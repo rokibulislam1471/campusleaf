@@ -1,0 +1,119 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+  <title>CampusLeaf Student Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f7f2;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    main {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      width: min(350px, 85vw);
+    }
+    h1 { color: #194A3B; }
+    input, button {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+    }
+    button {
+      background: #194A3B;
+      color: white;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #message { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>CampusLeaf</h1>
+  <p>Sign in using your HSWT student email</p>
+
+  <input id="email" type="email"
+         placeholder="name@student.hswt.de">
+
+  <button id="send">Send verification code</button>
+
+  <input id="otp" inputmode="numeric"
+         maxlength="6"
+         placeholder="6-digit code">
+
+  <button id="verify">Verify & Sign In</button>
+
+  <p id="message" role="status"></p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const client = window.supabase.createClient(
+    "https://rbxznvvhmiwmeuguppkf.supabase.co",
+    "sb_publishable_vNPMvJmZHQsgAeTYXCs-tA_5el93xO0",
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true
+      }
+    }
+  );
+
+  const emailInput = document.getElementById("email");
+  const otpInput = document.getElementById("otp");
+  const message = document.getElementById("message");
+
+  document.getElementById("send").onclick = async () => {
+    const email = emailInput.value.trim().toLowerCase();
+
+    if (!/^[^@\s]+@student\.hswt\.de$/.test(email)) {
+      message.textContent = "Use your HSWT student email.";
+      return;
+    }
+
+    message.textContent = "Sending code...";
+
+    const { error } = await client.auth.signInWithOtp({
+      email
+    });
+
+    message.textContent = error
+      ? error.message
+      : "Check your university email for the code.";
+  };
+
+  document.getElementById("verify").onclick = async () => {
+    const email = emailInput.value.trim().toLowerCase();
+    const code = otpInput.value.trim();
+
+    const { error } = await client.auth.verifyOtp({
+      email,
+      token: code,
+      type: "email"
+    });
+
+    message.textContent = error
+      ? error.message
+      : "Login successful! Your session is saved.";
+  };
+
+  client.auth.getUser().then(({ data }) => {
+    if (data.user) {
+      message.textContent =
+        "Already signed in as " + data.user.email;
+    }
+  });
+</script>
+</body>
+</html>
